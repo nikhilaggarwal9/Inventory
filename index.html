@@ -16,15 +16,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAGae4Au2-jXyI0q-m7tTn5fXgclK8qIvI",
-  authDomain: "inventory-d1a57.firebaseapp.com",
-  projectId: "inventory-d1a57",
-  storageBucket: "inventory-d1a57.firebasestorage.app",
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAGae4Au2-jXyI0q-m7tTn5fXgclK8qIvI",
+  authDomain:        "inventory-d1a57.firebaseapp.com",
+  projectId:         "inventory-d1a57",
+  storageBucket:     "inventory-d1a57.firebasestorage.app",
   messagingSenderId: "500816229151",
-  appId: "1:500816229151:web:907c0aa0d0f5c480e8f62a",
-  measurementId: "G-3T659S2XNW"
+  appId:             "1:500816229151:web:907c0aa0d0f5c480e8f62a",
+  measurementId:     "G-3T659S2XNW"
 };
+
 // — Init —
 const fbApp = initializeApp(FIREBASE_CONFIG);
 const db    = getFirestore(fbApp);
