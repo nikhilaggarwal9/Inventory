@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>Inventory Tracker</title>
+<title>Inventory Tracker | Firebase Cloud</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
 <style>
 :root{
   --bg:#f7f3ee;
@@ -32,424 +38,75 @@
   --mono:'DM Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-
-/* ── NOISE OVERLAY ── */
-body::before{
-  content:'';position:fixed;inset:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events:none;z-index:9999;opacity:.35
-}
-
-/* ── AMBIENT GLOW ── */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.35}
 .glow-orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;animation:drift 12s ease-in-out infinite alternate}
 .glow-orb.a{width:500px;height:500px;background:rgba(91,143,255,0.06);top:-100px;right:-100px}
 .glow-orb.b{width:400px;height:400px;background:rgba(192,138,30,0.05);bottom:-50px;left:-100px;animation-delay:-6s}
 @keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(30px,20px)}}
-
-/* ── SCREENS ── */
 .screen{display:none;position:relative;z-index:1}
 .screen.active{display:block}
-
-/* ── LOGIN ── */
 .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
 .login-box{width:100%;max-width:480px;animation:slideUp .5s cubic-bezier(.16,1,.3,1) both}
 @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
-
 .app-badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:2rem;letter-spacing:.05em;text-transform:uppercase}
 .app-badge span{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-
 .login-h1{font-size:clamp(28px,6vw,42px);font-weight:600;line-height:1.1;letter-spacing:-.02em;margin-bottom:.75rem;color:var(--text)}
 .login-sub{font-size:15px;color:var(--text2);margin-bottom:2.5rem;line-height:1.6}
-
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem}
-.role-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:1.5rem 1.25rem;cursor:pointer;text-align:center;
-  transition:border-color .2s,background .2s,transform .2s,box-shadow .2s;
-  position:relative;overflow:hidden
-}
-.role-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent-glow),transparent);opacity:0;transition:opacity .2s}
+.role-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.25rem;cursor:pointer;text-align:center;transition:all .2s;position:relative;overflow:hidden}
 .role-card:hover{border-color:var(--accent);background:var(--surface2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(42,36,32,.1)}
-.role-card:hover::after{opacity:1}
-.role-card:active{transform:translateY(0)}
-.role-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:22px;font-weight:700;position:relative;z-index:1}
+.role-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:22px;font-weight:700}
 .icon-admin{background:rgba(91,143,255,0.12);color:var(--accent);border:1px solid rgba(91,143,255,0.25)}
 .icon-user{background:rgba(45,158,95,0.1);color:var(--green);border:1px solid rgba(45,158,95,0.25)}
-.role-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;position:relative;z-index:1}
-.role-card-desc{font-size:12px;color:var(--text2);line-height:1.5;position:relative;z-index:1}
-
-/* ── AUTH PANEL ── */
-.auth-panel{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:1.5rem;margin-top:0;
-  animation:expandDown .3s cubic-bezier(.16,1,.3,1) both;
-  transform-origin:top
-}
+.role-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.role-card-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.auth-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;animation:expandDown .3s cubic-bezier(.16,1,.3,1) both;transform-origin:top}
 @keyframes expandDown{from{opacity:0;transform:scaleY(.92) translateY(-8px)}to{opacity:1;transform:scaleY(1) translateY(0)}}
-.auth-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:1.25rem}
-
-/* ── FORM ELEMENTS ── */
 .form-group{margin-bottom:1rem}
-.form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase}
-.form-input{
-  width:100%;font-size:14px;font-family:var(--font);
-  padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--surface2);color:var(--text);outline:none;
-  transition:border-color .2s,box-shadow .2s;
-}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase}
+.form-input{width:100%;font-size:14px;font-family:var(--font);padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);outline:none}
 .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-.form-input::placeholder{color:var(--text3)}
-select.form-input{cursor:pointer}
-select.form-input option{background:var(--surface2);color:var(--text)}
-textarea.form-input{resize:vertical;min-height:80px}
-.hint{font-size:12px;color:var(--text3);margin-top:6px;font-family:var(--mono)}
-
-/* ── BUTTONS ── */
-.btn-primary{
-  width:100%;padding:12px;
-  background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);
-  font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;
-  transition:opacity .15s,transform .15s,box-shadow .15s;
-  box-shadow:0 4px 16px rgba(91,143,255,0.25);
-  margin-top:.5rem
-}
-.btn-primary:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,143,255,.35)}
-.btn-primary:active{transform:translateY(0)}
-.btn-secondary{
-  padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--surface);font-size:13px;font-weight:500;font-family:var(--font);
-  cursor:pointer;color:var(--text);transition:all .15s;white-space:nowrap
-}
-.btn-secondary:hover{background:var(--surface2);border-color:var(--border2)}
-.btn-danger{
-  padding:8px 16px;border:1px solid rgba(214,79,79,.3);border-radius:var(--radius-sm);
-  background:var(--red-bg);font-size:13px;font-weight:500;font-family:var(--font);
-  cursor:pointer;color:var(--red);transition:all .15s;white-space:nowrap
-}
-.btn-danger:hover{background:rgba(214,79,79,.15)}
-.btn-cancel{
-  width:100%;padding:10px;background:transparent;border:1px solid var(--border);
-  border-radius:var(--radius-sm);font-size:13px;font-weight:500;font-family:var(--font);
-  cursor:pointer;color:var(--text2);margin-top:8px;transition:all .15s
-}
-.btn-cancel:hover{background:var(--surface2)}
-
-/* ── TOAST ── */
-.toast{
-  background:var(--surface);border:1px solid var(--border2);color:var(--text);
-  padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;
-  margin-bottom:1rem;display:none;
-  animation:toastIn .3s cubic-bezier(.16,1,.3,1)
-}
+.btn-primary{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;box-shadow:0 4px 16px rgba(91,143,255,0.25)}
+.btn-secondary{padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);font-size:13px;font-weight:500;cursor:pointer}
+.btn-danger{padding:8px 16px;background:var(--red-bg);border:1px solid rgba(214,79,79,.3);border-radius:var(--radius-sm);color:var(--red);cursor:pointer}
+.btn-cancel{width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text2);margin-top:8px;cursor:pointer}
+.toast{background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:1rem;display:none;animation:toastIn .3s}
 .toast.show{display:flex;align-items:center;gap:10px}
-.toast.error{border-color:rgba(214,79,79,.4);background:rgba(214,79,79,.07);color:var(--red)}
-.toast.success{border-color:rgba(45,158,95,.3);background:rgba(45,158,95,.07);color:var(--green)}
+.toast.error{color:var(--red);background:var(--red-bg)}
+.toast.success{color:var(--green);background:var(--green-bg)}
 @keyframes toastIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── APP LAYOUT ── */
-.app-layout{display:flex;flex-direction:column;min-height:100vh}
-
-/* ── TOPBAR ── */
-.topbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:1rem 1.5rem;border-bottom:1px solid var(--border);
-  background:rgba(247,243,238,.85);backdrop-filter:blur(12px);
-  position:sticky;top:0;z-index:100;
-  animation:slideDown .4s cubic-bezier(.16,1,.3,1) both
-}
-@keyframes slideDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
-.topbar-brand{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.03em}
-.pill-admin{background:rgba(91,143,255,.1);color:var(--accent);border:1px solid rgba(91,143,255,.2)}
-.pill-user{background:rgba(45,158,95,.09);color:var(--green);border:1px solid rgba(45,158,95,.2)}
-.pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
-
-/* ── TABS ── */
-.tabs-bar{
-  display:flex;gap:2px;padding:.75rem 1.5rem 0;
-  border-bottom:1px solid var(--border);overflow-x:auto;
-  background:var(--surface);
-  animation:slideDown .4s .05s cubic-bezier(.16,1,.3,1) both
-}
-.tabs-bar::-webkit-scrollbar{display:none}
-.tab-btn{
-  padding:8px 16px;font-size:13px;font-weight:500;font-family:var(--font);
-  border:none;background:none;cursor:pointer;color:var(--text2);
-  border-bottom:2px solid transparent;margin-bottom:-1px;
-  transition:color .15s,border-color .15s;white-space:nowrap;border-radius:6px 6px 0 0
-}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:rgba(247,243,238,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.tabs-bar{display:flex;gap:2px;padding:.75rem 1.5rem 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
+.tab-btn{padding:8px 16px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent}
 .tab-btn.active{color:var(--text);border-bottom-color:var(--accent)}
-.tab-btn:hover:not(.active){color:var(--text);background:var(--surface2)}
-
-/* ── MAIN CONTENT ── */
-.main{padding:1.5rem;animation:fadeUp .4s .1s cubic-bezier(.16,1,.3,1) both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.panel{display:none}
-.panel.active{display:block}
-
-/* ── STAT CARDS ── */
+.main{padding:1.5rem}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
-.stat-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:1.25rem;position:relative;overflow:hidden;
-  transition:border-color .2s,transform .2s,box-shadow .2s;
-  animation:statIn .4s cubic-bezier(.16,1,.3,1) both
-}
-.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 6px 20px rgba(42,36,32,.08)}
-.stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;filter:blur(30px);opacity:.4}
-.stat-card.s1::before{background:var(--accent)}
-.stat-card.s2::before{background:var(--green)}
-.stat-card.s3::before{background:var(--red)}
-.stat-card.s4::before{background:var(--amber)}
-@keyframes statIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.stat-card:nth-child(1){animation-delay:.05s}
-.stat-card:nth-child(2){animation-delay:.1s}
-.stat-card:nth-child(3){animation-delay:.15s}
-.stat-card:nth-child(4){animation-delay:.2s}
-.stat-label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
-.stat-val{font-size:32px;font-weight:600;letter-spacing:-.02em;font-family:var(--mono)}
-.stat-val.accent{color:var(--accent)}
-.stat-val.green{color:var(--green)}
-.stat-val.red{color:var(--red)}
-.stat-val.amber{color:var(--amber)}
-
-/* ── CARD ── */
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;margin-bottom:.5rem}
+.stat-val{font-size:32px;font-weight:600;font-family:var(--mono)}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .card-body{padding:1.25rem}
-
-/* ── TABLE ── */
 .tbl-wrap{overflow-x:auto}
-.tbl-wrap::-webkit-scrollbar{height:4px}
-.tbl-wrap::-webkit-scrollbar-track{background:var(--surface)}
-.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:580px}
-th{
-  text-align:left;padding:10px 14px;font-size:11px;font-weight:500;
-  color:var(--text2);border-bottom:1px solid var(--border);
-  text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;
-  background:var(--surface2)
-}
-td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;transition:background .15s}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--surface2)}
-tr{animation:rowIn .3s cubic-bezier(.16,1,.3,1) both}
-@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
-
-/* ── BADGES ── */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em}
-.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
-.badge.ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(45,158,95,.2)}
-.badge.low{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(192,138,30,.2)}
-.badge.out{background:var(--red-bg);color:var(--red);border:1px solid rgba(214,79,79,.2)}
-.badge.active-u{background:rgba(91,143,255,.1);color:var(--accent);border:1px solid rgba(91,143,255,.2)}
-.badge.inactive-u{background:var(--surface3);color:var(--text3);border:1px solid var(--border)}
-
-/* ── BAR ── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);background:var(--surface2)}
+td{padding:12px 14px;border-bottom:1px solid var(--border)}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.ok{background:var(--green-bg);color:var(--green)}
+.badge.low{background:var(--amber-bg);color:var(--amber)}
+.badge.out{background:var(--red-bg);color:var(--red)}
 .bar-wrap{width:80px;height:4px;background:var(--surface3);border-radius:2px;display:inline-block;vertical-align:middle;margin-right:8px;overflow:hidden}
-.bar-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.16,1,.3,1)}
-
-/* ── SEARCH/TOOLBAR ── */
-.toolbar{display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap}
-.search-input{
-  flex:1;min-width:180px;font-size:13px;font-family:var(--font);
-  padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--surface);color:var(--text);outline:none;
-  transition:border-color .2s,box-shadow .2s
-}
-.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-.search-input::placeholder{color:var(--text3)}
-
-/* ── SECTION HEADER ── */
-.section-hdr{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem}
-
-/* ── TYPE BUTTONS ── */
+.bar-fill{height:100%;transition:width .6s}
 .type-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.type-btn{
-  padding:11px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--surface2);cursor:pointer;font-size:13px;font-weight:500;
-  font-family:var(--font);color:var(--text2);transition:all .2s;text-align:center
-}
-.type-btn:hover{border-color:var(--border2);background:var(--surface3);color:var(--text)}
-.type-btn.sel-in{background:var(--green-bg);color:var(--green);border-color:rgba(45,158,95,.35)}
-.type-btn.sel-out{background:var(--red-bg);color:var(--red);border-color:rgba(214,79,79,.35)}
-.type-btn.sel-adj{background:rgba(91,143,255,.1);color:var(--accent);border-color:rgba(91,143,255,.35)}
-
-/* ── INLINE GRID ── */
-.inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.inline-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-
-/* ── LOG TYPES ── */
-.log-in{color:var(--green);font-weight:600;font-family:var(--mono);font-size:12px}
-.log-out{color:var(--red);font-weight:600;font-family:var(--mono);font-size:12px}
-.log-adj{color:var(--accent);font-weight:600;font-family:var(--mono);font-size:12px}
-
-/* ── EMPTY STATE ── */
-.empty{text-align:center;padding:3rem 2rem;color:var(--text3);font-size:14px}
-.empty-icon{font-size:32px;margin-bottom:1rem;opacity:.5}
-
-/* ── PAGE HEADER ── */
-.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px}
-.page-title{font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
-.page-sub{font-size:13px;color:var(--text2);margin-top:3px}
-
-/* ── USER ENTRY FORM ── */
-.form-wrap{max-width:600px;margin:0 auto}
-.settings-wrap{max-width:560px}
-
-/* ── USER ROW ── */
-.user-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 0;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap;
-  animation:rowIn .3s cubic-bezier(.16,1,.3,1) both
-}
-.user-row:last-child{border-bottom:none}
-.user-info{display:flex;flex-direction:column;gap:4px}
-.user-name-txt{font-size:14px;font-weight:500;color:var(--text)}
-.user-meta{font-size:11px;color:var(--text3)}
-.user-actions{display:flex;gap:6px;flex-shrink:0}
-
-/* ── SHARE SECTION ── */
-.share-box{
-  background:linear-gradient(135deg,rgba(91,143,255,.07),rgba(45,158,95,.05));
-  border:1px solid rgba(91,143,255,.18);border-radius:var(--radius);padding:1.25rem;
-  margin-bottom:1.5rem
-}
-.share-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:.4rem;display:flex;align-items:center;gap:8px}
-.share-title svg{color:var(--accent)}
-.share-desc{font-size:12px;color:var(--text2);margin-bottom:1rem;line-height:1.6}
-.share-link-row{display:flex;gap:8px;align-items:center}
-.share-link-input{
-  flex:1;font-size:12px;font-family:var(--mono);
-  padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);
-  background:var(--surface2);color:var(--text2);outline:none;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
-}
-.copy-btn{
-  padding:9px 16px;background:var(--accent);color:#fff;border:none;
-  border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:var(--font);
-  cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
-  display:flex;align-items:center;gap:6px
-}
-.copy-btn:hover{opacity:.85}
-.copy-btn.copied{background:var(--green)}
-.copy-btn svg{transition:transform .2s}
-.copy-btn.copied svg{transform:scale(1.2)}
-
-/* ── MODAL ── */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(42,36,32,.5);backdrop-filter:blur(4px);
-  display:flex;align-items:center;justify-content:center;padding:1.5rem;
-  z-index:1000;animation:fadeIn .2s ease
-}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{
-  background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
-  padding:1.5rem;width:100%;max-width:420px;
-  animation:modalIn .3s cubic-bezier(.16,1,.3,1)
-}
-@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.modal-title{font-size:16px;font-weight:600;margin-bottom:.5rem;color:var(--text)}
-.modal-sub{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
-
-/* ── RIPPLE ── */
-.ripple{position:relative;overflow:hidden}
-.ripple::after{
-  content:'';position:absolute;border-radius:50%;
-  background:rgba(42,36,32,.08);
-  transform:scale(0);animation:ripple .5s linear;pointer-events:none
-}
-@keyframes ripple{to{transform:scale(4);opacity:0}}
-
-/* ── EMAIL ALERT BANNER ── */
-.alert-banner{
-  display:none;align-items:center;gap:12px;
-  background:linear-gradient(135deg,rgba(192,138,30,.1),rgba(214,79,79,.07));
-  border:1px solid rgba(192,138,30,.3);border-radius:var(--radius);
-  padding:1rem 1.25rem;margin-bottom:1.25rem;
-  animation:toastIn .4s cubic-bezier(.16,1,.3,1)
-}
-.alert-banner.show{display:flex}
-.alert-icon{font-size:20px;flex-shrink:0}
-.alert-body{flex:1}
-.alert-title{font-size:13px;font-weight:600;color:var(--amber);margin-bottom:3px}
-.alert-items{font-size:12px;color:var(--text2);line-height:1.6}
-.alert-send-btn{
-  padding:7px 14px;background:var(--amber);color:#fff;border:none;
-  border-radius:var(--radius-sm);font-size:12px;font-weight:700;font-family:var(--font);
-  cursor:pointer;flex-shrink:0;transition:all .2s;white-space:nowrap
-}
-.alert-send-btn:hover{opacity:.85;transform:translateY(-1px)}
-.alert-send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-
-/* ── EMAILJS SETUP CARD ── */
-.setup-step{
-  display:flex;align-items:flex-start;gap:12px;padding:12px 0;
-  border-bottom:1px solid var(--border)
-}
-.setup-step:last-child{border-bottom:none}
-.step-num{
-  width:24px;height:24px;border-radius:50%;background:rgba(91,143,255,.12);
-  color:var(--accent);font-size:12px;font-weight:700;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;margin-top:2px
-}
-.step-text{font-size:13px;color:var(--text2);line-height:1.6}
-.step-text a{color:var(--accent);text-decoration:none}
-.step-text a:hover{text-decoration:underline}
-.step-text code{
-  font-family:var(--mono);font-size:11px;background:var(--surface3);
-  padding:2px 6px;border-radius:4px;color:var(--text)
-}
-.email-status{
-  display:flex;align-items:center;gap:8px;
-  font-size:12px;padding:8px 12px;border-radius:var(--radius-sm);
-  margin-top:.75rem
-}
-.email-status.configured{background:var(--green-bg);color:var(--green);border:1px solid rgba(45,158,95,.2)}
-.email-status.not-configured{background:var(--surface3);color:var(--text3);border:1px solid var(--border)}
-.email-status.error{background:var(--red-bg);color:var(--red);border:1px solid rgba(214,79,79,.2)}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-
-/* ── RESPONSIVE ── */
-@media(max-width:640px){
-  .stat-grid{grid-template-columns:1fr 1fr;gap:10px}
-  .stat-val{font-size:24px}
-  .stat-card{padding:1rem}
-  .role-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .role-card{padding:1.25rem 1rem}
-  .role-icon{width:44px;height:44px;margin-bottom:.75rem}
-  .login-h1{font-size:26px}
-  .inline-grid,.inline-grid-3{grid-template-columns:1fr}
-  .type-btn{font-size:12px;padding:9px 6px}
-  .page-title{font-size:17px}
-  .topbar{padding:.875rem 1rem}
-  .tabs-bar{padding:.75rem 1rem 0}
-  .main{padding:1rem}
-  .share-link-row{flex-direction:column;align-items:stretch}
-  .copy-btn{justify-content:center}
-  table{font-size:12px}
-  th,td{padding:9px 10px}
-  .user-row{flex-direction:column;align-items:flex-start}
-}
-@media(min-width:1024px){
-  .stat-grid{gap:16px}
-  .main{padding:2rem 2.5rem}
-  .topbar{padding:1rem 2.5rem}
-  .tabs-bar{padding:.75rem 2.5rem 0}
-  .login-box{max-width:520px}
-  .role-grid{max-width:540px}
-}
-
-/* ── NUMBER COUNTER ANIMATION ── */
-@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.stat-val.animate{animation:countUp .4s cubic-bezier(.16,1,.3,1)}
+.type-btn{padding:11px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);cursor:pointer;font-size:13px}
+.type-btn.sel-in{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+.type-btn.sel-out{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.type-btn.sel-adj{background:rgba(91,143,255,.1);color:var(--accent);border-color:var(--accent)}
+.alert-banner{display:none;background:linear-gradient(135deg,rgba(192,138,30,.1),rgba(214,79,79,.07));border:1px solid rgba(192,138,30,.3);padding:1rem;margin-bottom:1.5rem;border-radius:var(--radius)}
+.alert-banner.show{display:flex;align-items:center;gap:12px}
+.user-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+@media(max-width:640px){.stat-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -457,932 +114,407 @@ tr{animation:rowIn .3s cubic-bezier(.16,1,.3,1) both}
 <div class="glow-orb a"></div>
 <div class="glow-orb b"></div>
 
-<!-- ══════════════════════════════════════
-     LOGIN SCREEN
-════════════════════════════════════════ -->
+<!-- LOGIN -->
 <div id="screen-login" class="screen active">
   <div class="login-page">
     <div class="login-box">
-      <div class="app-badge"><span></span>Inventory System</div>
-      <h1 class="login-h1">Welcome back.<br/>Sign in to continue.</h1>
-      <p class="login-sub">Choose your access level to get started with the inventory tracker.</p>
+      <div class="app-badge"><span></span>Inventory Cloud</div>
+      <h1 class="login-h1">Syncing Data...</h1>
+      <p class="login-sub" id="login-sub-text">Please wait while we connect to the cloud.</p>
 
-      <div class="role-grid" id="role-grid">
-        <div class="role-card ripple" onclick="showAdminLogin()">
+      <div class="role-grid" id="role-grid" style="display:none">
+        <div class="role-card" onclick="showAdminLogin()">
           <div class="role-icon icon-admin">⚡</div>
           <div class="role-card-title">Admin</div>
-          <div class="role-card-desc">Full access · manage stock · view dashboard · manage team</div>
+          <div class="role-card-desc">Full dashboard access</div>
         </div>
-        <div class="role-card ripple" onclick="showUserLogin()">
+        <div class="role-card" onclick="showUserLogin()">
           <div class="role-icon icon-user">📦</div>
-          <div class="role-card-title">Team member</div>
-          <div class="role-card-desc">Record stock movements · entry form only</div>
+          <div class="role-card-title">Team</div>
+          <div class="role-card-desc">Stock entry only</div>
         </div>
       </div>
 
-      <!-- Admin login -->
       <div id="admin-login-area" style="display:none">
         <div class="auth-panel">
-          <div class="auth-title">Admin sign in</div>
           <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" id="pw-input" class="form-input" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')tryAdminLogin()"/>
-            <div class="hint">Default: admin123 — change in Settings</div>
+            <label class="form-label">Admin Password</label>
+            <input type="password" id="pw-input" class="form-input" onkeydown="if(event.key==='Enter')tryAdminLogin()"/>
           </div>
           <div id="login-toast" class="toast error"></div>
-          <button class="btn-primary ripple" onclick="tryAdminLogin()">Sign in as Admin →</button>
+          <button class="btn-primary" onclick="tryAdminLogin()">Sign in →</button>
           <button class="btn-cancel" onclick="hideAdminLogin()">Cancel</button>
         </div>
       </div>
 
-      <!-- User login -->
       <div id="user-login-area" style="display:none">
         <div class="auth-panel">
-          <div class="auth-title">Team member sign in</div>
           <div class="form-group">
-            <label class="form-label">Your name</label>
-            <input type="text" id="user-login-name" class="form-input" placeholder="Type or select your name" list="user-names-list" onkeydown="if(event.key==='Enter')document.getElementById('user-login-pw').focus()"/>
+            <label class="form-label">Your Name</label>
+            <input type="text" id="user-login-name" class="form-input" list="user-names-list"/>
             <datalist id="user-names-list"></datalist>
           </div>
           <div class="form-group">
             <label class="form-label">Password</label>
-            <input type="password" id="user-login-pw" class="form-input" placeholder="Your password" onkeydown="if(event.key==='Enter')tryUserLogin()"/>
+            <input type="password" id="user-login-pw" class="form-input" onkeydown="if(event.key==='Enter')tryUserLogin()"/>
           </div>
           <div id="user-login-toast" class="toast error"></div>
-          <button class="btn-primary ripple" onclick="tryUserLogin()">Sign in →</button>
+          <button class="btn-primary" onclick="tryUserLogin()">Sign in →</button>
           <button class="btn-cancel" onclick="hideUserLogin()">Cancel</button>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     USER SCREEN
-════════════════════════════════════════ -->
+<!-- USER SCREEN -->
 <div id="screen-user" class="screen">
   <div class="app-layout">
     <div class="topbar">
-      <div class="topbar-brand">📦 Inventory Tracker</div>
-      <div class="topbar-right">
-        <span class="pill pill-user"><span class="dot"></span><span id="user-pill-name">Team member</span></span>
-        <button class="btn-secondary" onclick="logout()">Sign out</button>
-      </div>
+      <div class="topbar-brand">📦 Team Entry</div>
+      <button class="btn-secondary" onclick="logout()">Sign out</button>
     </div>
     <div class="main">
-      <div class="form-wrap">
-        <div class="page-hdr">
-          <div>
-            <div class="page-title">Stock entry</div>
-            <div class="page-sub" id="user-welcome">Record a stock movement</div>
-          </div>
-        </div>
+      <div style="max-width:500px;margin:0 auto">
+        <h2 id="user-welcome" style="margin-bottom:1rem"></h2>
         <div id="user-toast" class="toast success"></div>
-        <div class="card">
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Item name</label>
-              <select id="u-item" class="form-input"><option value="">— select item —</option></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Transaction type</label>
-              <div class="type-row">
-                <button class="type-btn sel-in" onclick="selType('IN',this)">+ Stock in</button>
-                <button class="type-btn" onclick="selType('OUT',this)">− Stock out</button>
-                <button class="type-btn" onclick="selType('ADJ',this)">~ Adjust</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Quantity</label>
-              <input type="number" id="u-qty" class="form-input" min="1" value="1"/>
-              <div class="hint" id="u-hint"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Notes (optional)</label>
-              <textarea id="u-notes" class="form-input" placeholder="Reason, reference number, etc."></textarea>
-            </div>
-            <button class="btn-primary ripple" onclick="submitUserEntry()">Submit entry →</button>
+        <div class="card"><div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Item</label>
+            <select id="u-item" class="form-input"></select>
           </div>
-        </div>
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <div class="type-row">
+              <button class="type-btn sel-in" onclick="selType('IN',this)">+ In</button>
+              <button class="type-btn" onclick="selType('OUT',this)">− Out</button>
+              <button class="type-btn" onclick="selType('ADJ',this)">~ Adj</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity</label>
+            <input type="number" id="u-qty" class="form-input" value="1" min="1"/>
+          </div>
+          <button class="btn-primary" onclick="submitUserEntry()">Submit Entry</button>
+        </div></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     ADMIN SCREEN
-════════════════════════════════════════ -->
+<!-- ADMIN SCREEN -->
 <div id="screen-admin" class="screen">
   <div class="app-layout">
     <div class="topbar">
-      <div class="topbar-brand">⚡ Inventory Tracker</div>
-      <div class="topbar-right">
-        <span class="pill pill-admin"><span class="dot"></span>Admin</span>
-        <button class="btn-secondary" onclick="logout()">Sign out</button>
-      </div>
+      <div class="topbar-brand">⚡ Admin Console</div>
+      <button class="btn-secondary" onclick="logout()">Sign out</button>
     </div>
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
-      <button class="tab-btn" onclick="switchTab('inventory',this)">Inventory</button>
-      <button class="tab-btn" onclick="switchTab('log',this)">Log</button>
-      <button class="tab-btn" onclick="switchTab('users',this)">Team &amp; Share</button>
-      <button class="tab-btn" onclick="switchTab('settings',this)">Settings</button>
+      <button class="tab-btn" onclick="switchTab('inventory',this)">Manage</button>
+      <button class="tab-btn" onclick="switchTab('log',this)">History</button>
+      <button class="tab-btn" onclick="switchTab('users',this)">Team</button>
     </div>
-
     <div class="main">
       <div id="admin-toast" class="toast success"></div>
 
-      <!-- ── DASHBOARD ── -->
+      <!-- DASHBOARD -->
       <div id="apanel-dashboard" class="panel active">
-        <!-- Low stock alert banner -->
         <div class="alert-banner" id="low-stock-banner">
-          <div class="alert-icon">⚠️</div>
-          <div class="alert-body">
-            <div class="alert-title">Low stock alert — items below 35%</div>
-            <div class="alert-items" id="low-stock-items">—</div>
-          </div>
-          <button class="alert-send-btn" id="alert-send-btn" onclick="sendLowStockEmail()">📧 Email Admin</button>
+          <div style="font-size:20px">⚠️</div>
+          <div style="flex:1"><div style="font-weight:600">Low Stock Alert</div><div id="low-stock-items" style="font-size:12px"></div></div>
         </div>
         <div class="stat-grid">
-          <div class="stat-card s1">
-            <div class="stat-label">Total items</div>
-            <div class="stat-val accent" id="s-total">0</div>
-          </div>
-          <div class="stat-card s2">
-            <div class="stat-label">Total units</div>
-            <div class="stat-val green" id="s-units">0</div>
-          </div>
-          <div class="stat-card s3">
-            <div class="stat-label">Low stock</div>
-            <div class="stat-val red" id="s-low">0</div>
-          </div>
-          <div class="stat-card s4">
-            <div class="stat-label">Transactions</div>
-            <div class="stat-val amber" id="s-txns">0</div>
-          </div>
-        </div>
-        <div class="toolbar">
-          <input type="text" id="dash-search" class="search-input" placeholder="Search items…" oninput="renderDash()"/>
-          <button class="btn-secondary" onclick="exportCSV()">↓ Export CSV</button>
+          <div class="stat-card"><div class="stat-label">Total Units</div><div class="stat-val" id="s-units">0</div></div>
+          <div class="stat-card"><div class="stat-label">Items</div><div class="stat-val" id="s-total">0</div></div>
+          <div class="stat-card"><div class="stat-label">Low Stock</div><div class="stat-val" style="color:var(--red)" id="s-low">0</div></div>
+          <div class="stat-card"><div class="stat-label">Logs</div><div class="stat-val" id="s-txns">0</div></div>
         </div>
         <div class="card">
           <div class="tbl-wrap">
             <table>
-              <thead><tr><th>Item</th><th>Stock</th><th>Level</th><th>Last movement</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Item</th><th>Stock</th><th>Level</th><th>Action</th></tr></thead>
               <tbody id="dash-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ── INVENTORY ── -->
+      <!-- INVENTORY -->
       <div id="apanel-inventory" class="panel">
-        <div style="margin-bottom:1.5rem">
-          <div class="section-hdr">Add new item</div>
-          <div class="card"><div class="card-body">
-            <div class="inline-grid" style="margin-bottom:.75rem">
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Item name</label>
-                <input type="text" id="new-name" class="form-input" placeholder="e.g. Dubai Diaries"/>
-              </div>
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Initial stock</label>
-                <input type="number" id="new-stock" class="form-input" min="0" value="0"/>
-              </div>
-            </div>
-            <button class="btn-primary ripple" style="margin-top:.5rem" onclick="addItem()">Add item →</button>
-          </div></div>
-        </div>
-        <div class="section-hdr">Current inventory</div>
-        <div class="card">
-          <div class="tbl-wrap">
-            <table>
-              <thead><tr><th>Item name</th><th>Current stock</th><th>Status</th><th>Action</th></tr></thead>
-              <tbody id="manage-tbody"></tbody>
-            </table>
-          </div>
-        </div>
+        <div class="card" style="margin-bottom:1.5rem"><div class="card-body">
+          <div class="form-group"><label class="form-label">New Item Name</label><input type="text" id="new-name" class="form-input"/></div>
+          <button class="btn-primary" onclick="addItem()">Add Item</button>
+        </div></div>
+        <div class="card"><div class="tbl-wrap">
+          <table><thead><tr><th>Name</th><th>Action</th></tr></thead><tbody id="manage-tbody"></tbody></table>
+        </div></div>
       </div>
 
-      <!-- ── LOG ── -->
+      <!-- LOG -->
       <div id="apanel-log" class="panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
-          <div class="section-hdr" style="margin:0">All transactions</div>
-          <button class="btn-secondary" onclick="exportCSV()">↓ Export CSV</button>
-        </div>
-        <div class="card">
-          <div class="tbl-wrap">
-            <table>
-              <thead><tr><th>Time</th><th>Item</th><th>Type</th><th>Qty</th><th>Person</th><th>Notes</th></tr></thead>
-              <tbody id="log-tbody"></tbody>
-            </table>
-          </div>
-          <div id="log-empty" class="empty"><div class="empty-icon">📋</div>No transactions yet.</div>
-        </div>
+        <div class="card"><div class="tbl-wrap">
+          <table><thead><tr><th>Time</th><th>Item</th><th>Type</th><th>Qty</th><th>By</th></tr></thead><tbody id="log-tbody"></tbody></table>
+        </div></div>
       </div>
 
-      <!-- ── USERS & SHARE ── -->
+      <!-- TEAM -->
       <div id="apanel-users" class="panel">
-        <div class="settings-wrap">
-
-          <!-- SHARE LINK -->
-          <div class="section-hdr">Share access</div>
-          <div class="share-box">
-            <div class="share-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-              Team member share link
-            </div>
-            <div class="share-desc">Share this link with your team. When they open it, they'll land directly on the team member sign-in screen — no need to tap "Team member" first. Anyone on the link still needs their personal password to log in.</div>
-            <div class="share-link-row">
-              <input type="text" class="share-link-input" id="share-link-val" readonly/>
-              <button class="copy-btn" id="copy-btn" onclick="copyShareLink()">
-                <svg id="copy-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                Copy link
-              </button>
-            </div>
-          </div>
-
-          <!-- ADD USER -->
-          <div class="section-hdr">Add team member</div>
-          <div class="card" style="margin-bottom:1.5rem"><div class="card-body">
-            <div class="inline-grid" style="margin-bottom:.75rem">
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Full name</label>
-                <input type="text" id="nu-name" class="form-input" placeholder="e.g. Sarah Ahmed"/>
-              </div>
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Password</label>
-                <input type="password" id="nu-pw" class="form-input" placeholder="Min 4 characters"/>
-              </div>
-            </div>
-            <button class="btn-primary ripple" style="margin-top:.25rem" onclick="addUser()">Add member →</button>
-            <div class="hint" style="margin-top:.75rem">They'll sign in using their name + password via the team member screen or share link.</div>
-          </div></div>
-
-          <!-- USER LIST -->
-          <div class="section-hdr">Team members (<span id="user-count">0</span>)</div>
-          <div class="card"><div class="card-body" id="users-list">
-            <div class="empty"><div class="empty-icon">👥</div>No team members yet.</div>
-          </div></div>
-        </div>
+        <div class="card" style="margin-bottom:1.5rem"><div class="card-body">
+          <div class="form-group"><label class="form-label">Member Name</label><input type="text" id="nu-name" class="form-input"/></div>
+          <div class="form-group"><label class="form-label">Member Password</label><input type="password" id="nu-pw" class="form-input"/></div>
+          <button class="btn-primary" onclick="addUser()">Add Team Member</button>
+        </div></div>
+        <div class="card"><div class="card-body" id="users-list"></div></div>
       </div>
 
-      <!-- ── SETTINGS ── -->
-      <div id="apanel-settings" class="panel">
-        <div class="settings-wrap">
-
-          <!-- EMAIL ALERTS -->
-          <div class="section-hdr">📧 Low stock email alerts</div>
-          <div class="card" style="margin-bottom:1.5rem"><div class="card-body">
-            <div style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">
-              Automatically send an email to the admin when any item's stock drops below <strong style="color:var(--amber)">35%</strong> of its initial value. Uses <strong style="color:var(--text)">EmailJS</strong> — a free service to send emails directly from the browser with no backend required.
-            </div>
-
-            <!-- Setup guide -->
-            <div class="card" style="background:var(--surface2);margin-bottom:1.25rem">
-              <div class="card-body" style="padding:1rem">
-                <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.875rem">Setup guide (one-time)</div>
-                <div class="setup-step">
-                  <div class="step-num">1</div>
-                  <div class="step-text">Create a free account at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> — no credit card needed. Free tier allows 200 emails/month.</div>
-                </div>
-                <div class="setup-step">
-                  <div class="step-num">2</div>
-                  <div class="step-text">Go to <strong style="color:var(--text)">Email Services</strong> → Add New Service → connect your Gmail or Outlook. Copy the <code>Service ID</code>.</div>
-                </div>
-                <div class="setup-step">
-                  <div class="step-num">3</div>
-                  <div class="step-text">Go to <strong style="color:var(--text)">Email Templates</strong> → Create Template. Use these variables in your template body:<br/>
-                  <code>{{items_list}}</code> — the low-stock items &nbsp;·&nbsp; <code>{{sent_at}}</code> — timestamp &nbsp;·&nbsp; <code>{{total_alerts}}</code> — count<br/>
-                  Copy the <code>Template ID</code>.</div>
-                </div>
-                <div class="setup-step">
-                  <div class="step-num">4</div>
-                  <div class="step-text">Go to <strong style="color:var(--text)">Account</strong> → Copy your <code>Public Key</code>.</div>
-                </div>
-                <div class="setup-step">
-                  <div class="step-num">5</div>
-                  <div class="step-text">Paste all three values below along with your admin email address, then click <strong style="color:var(--text)">Save & Test</strong>.</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Config fields -->
-            <div class="inline-grid" style="margin-bottom:.875rem">
-              <div class="form-group" style="margin:0">
-                <label class="form-label">EmailJS Public Key</label>
-                <input type="text" id="ejs-pubkey" class="form-input" placeholder="e.g. user_aBcDeFgHiJkLmNoP"/>
-              </div>
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Service ID</label>
-                <input type="text" id="ejs-service" class="form-input" placeholder="e.g. service_xxxxxxx"/>
-              </div>
-            </div>
-            <div class="inline-grid" style="margin-bottom:.875rem">
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Template ID</label>
-                <input type="text" id="ejs-template" class="form-input" placeholder="e.g. template_xxxxxxx"/>
-              </div>
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Admin email (recipient)</label>
-                <input type="email" id="ejs-email" class="form-input" placeholder="admin@yourcompany.com"/>
-              </div>
-            </div>
-
-            <!-- Auto-send toggle -->
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
-              <input type="checkbox" id="ejs-auto" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer"/>
-              <label for="ejs-auto" style="font-size:13px;color:var(--text);cursor:pointer">Auto-send alert email whenever a transaction causes stock to drop below 35%</label>
-            </div>
-
-            <div id="email-status-display" class="email-status not-configured">
-              <span>●</span> Email alerts not configured
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap">
-              <button class="btn-primary ripple" style="flex:1;margin-top:0" onclick="saveEmailConfig()">Save &amp; Test →</button>
-              <button class="btn-secondary" onclick="clearEmailConfig()">Clear</button>
-            </div>
-          </div></div>
-
-          <!-- ADMIN PASSWORD -->
-          <div class="section-hdr">Change admin password</div>
-          <div class="card" style="margin-bottom:1.5rem"><div class="card-body">
-            <div class="form-group"><label class="form-label">Current password</label><input type="password" id="pw-old" class="form-input"/></div>
-            <div class="form-group"><label class="form-label">New password</label><input type="password" id="pw-new" class="form-input" placeholder="Min 6 characters"/></div>
-            <div class="form-group"><label class="form-label">Confirm new password</label><input type="password" id="pw-confirm" class="form-input"/></div>
-            <button class="btn-primary ripple" onclick="changePassword()">Update password →</button>
-          </div></div>
-
-          <!-- DATA -->
-          <div class="section-hdr">Data management</div>
-          <div class="card"><div class="card-body">
-            <div style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">All data is stored in your browser's local storage. Export a CSV backup regularly to avoid losing history.</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn-secondary" onclick="exportCSV()">↓ Export CSV</button>
-              <button class="btn-danger" onclick="clearData()">Clear transaction log</button>
-            </div>
-          </div></div>
-        </div>
-      </div>
-
-    </div><!-- end .main -->
-  </div><!-- end .app-layout -->
-</div><!-- end screen-admin -->
+    </div>
+  </div>
+</div>
 
 <script>
 /* ════════════════════════════════════
-   DATA
+   FIREBASE CONFIG
 ════════════════════════════════════ */
-var ITEMS=[
-  {name:"YAS Island Mugs",stock:21},{name:"Bahrain Diaries",stock:46},
-  {name:"DC Diaries",stock:122},{name:"Abu Dhabi Diaries",stock:324},
-  {name:"Qatar Diaries",stock:88},{name:"Regent Seven Seas Diaries",stock:14},
-  {name:"Rail Europe Brochures",stock:5},{name:"TBO Card Holders",stock:63},
-  {name:"Travel Bytes Card Holders",stock:270},{name:"TBO Coasters",stock:29},
-  {name:"Qatar Coasters",stock:405},{name:"TBO Magnets",stock:65},
-  {name:"TBO Candles",stock:71},{name:"TBO Big Bags",stock:292},
-  {name:"QR Codes",stock:381},{name:"Macao Bottle",stock:46},
-  {name:"TBO Bottle",stock:100},{name:"Saudi Bottle",stock:8}
-];
-function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
-function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+const firebaseConfig = {
+  apiKey: "AIzaSyB2-G7-Xt4LnARWQ6L9TYIhiLXhs9HHg6E",
+  authDomain: "automated-inventory-sync.firebaseapp.com",
+  projectId: "automated-inventory-sync",
+  storageBucket: "automated-inventory-sync.firebasestorage.app",
+  messagingSenderId: "823946326055",
+  appId: "1:823946326055:web:29ede9f4dbc33b02d2de02"
+};
 
-var inv=ld('iv4_items',ITEMS.map(function(i){return{name:i.name,stock:i.stock,initial:i.stock};}));
-var txns=ld('iv4_txns',[]);
-var pw=ld('iv4_pw','admin123');
-var users=ld('iv4_users',[]);
-var emailCfg=ld('iv4_email',{pubkey:'',service:'',template:'',email:'',auto:false});
-var uType='IN';
-var currentUser='';
-var ejsReady=false;
-
-function saveAll(){sv('iv4_items',inv);sv('iv4_txns',txns);}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 /* ════════════════════════════════════
-   EMAILJS INIT & CONFIG
+   STATE & SYNC
 ════════════════════════════════════ */
-function initEmailJS(){
-  if(!emailCfg.pubkey)return;
-  try{emailjs.init({publicKey:emailCfg.pubkey});ejsReady=true;}catch(e){ejsReady=false;}
-}
-function loadEmailConfigUI(){
-  document.getElementById('ejs-pubkey').value=emailCfg.pubkey||'';
-  document.getElementById('ejs-service').value=emailCfg.service||'';
-  document.getElementById('ejs-template').value=emailCfg.template||'';
-  document.getElementById('ejs-email').value=emailCfg.email||'';
-  document.getElementById('ejs-auto').checked=!!emailCfg.auto;
-  updateEmailStatusUI();
-}
-function updateEmailStatusUI(){
-  var el=document.getElementById('email-status-display');
-  if(!el)return;
-  var allSet=emailCfg.pubkey&&emailCfg.service&&emailCfg.template&&emailCfg.email;
-  if(allSet){
-    el.className='email-status configured';
-    el.innerHTML='<span>●</span> Configured — alerts will go to <strong>'+emailCfg.email+'</strong>'+(emailCfg.auto?' · Auto-send ON':' · Manual send only');
-  } else {
-    el.className='email-status not-configured';
-    el.innerHTML='<span>●</span> Email alerts not configured — fill in the fields above';
-  }
-}
-function saveEmailConfig(){
-  var pk=document.getElementById('ejs-pubkey').value.trim();
-  var svc=document.getElementById('ejs-service').value.trim();
-  var tpl=document.getElementById('ejs-template').value.trim();
-  var em=document.getElementById('ejs-email').value.trim();
-  var auto=document.getElementById('ejs-auto').checked;
-  if(!pk||!svc||!tpl||!em){showToast('admin-toast','Please fill in all four fields','error');return;}
-  if(em.indexOf('@')<0){showToast('admin-toast','Enter a valid email address','error');return;}
-  emailCfg={pubkey:pk,service:svc,template:tpl,email:em,auto:auto};
-  sv('iv4_email',emailCfg);
-  initEmailJS();
-  updateEmailStatusUI();
-  sendAlertEmail([{name:'TEST ITEM',stock:5,initial:20,pct:25}],true);
-}
-function clearEmailConfig(){
-  if(!confirm('Remove email alert configuration?'))return;
-  emailCfg={pubkey:'',service:'',template:'',email:'',auto:false};
-  sv('iv4_email',emailCfg);ejsReady=false;
-  loadEmailConfigUI();
-  showToast('admin-toast','Email config cleared','success');
-}
+let inv = [];
+let txns = [];
+let users = [];
+let adminPw = 'admin123';
+let currentUser = '';
+let uType = 'IN';
 
-/* ════════════════════════════════════
-   LOW STOCK DETECTION & EMAIL
-════════════════════════════════════ */
-function getLowStockItems(){
-  var low=[];
-  for(var i=0;i<inv.length;i++){
-    var item=inv[i];
-    var init=item.initial||item.stock||1;
-    var pct=Math.round((item.stock/Math.max(init,1))*100);
-    if(pct<35){low.push({name:item.name,stock:item.stock,initial:init,pct:pct});}
-  }
-  return low;
-}
-function updateLowStockBanner(){
-  var low=getLowStockItems();
-  var banner=document.getElementById('low-stock-banner');
-  var itemsEl=document.getElementById('low-stock-items');
-  var btn=document.getElementById('alert-send-btn');
-  if(!low.length){banner.classList.remove('show');return;}
-  banner.classList.add('show');
-  var lines=low.map(function(i){return i.name+' — '+i.stock+' units ('+i.pct+'% remaining)';});
-  itemsEl.innerHTML=lines.join('<br/>');
-  var allSet=emailCfg.pubkey&&emailCfg.service&&emailCfg.template&&emailCfg.email;
-  btn.style.display=allSet?'':'none';
-}
-function sendLowStockEmail(){
-  var low=getLowStockItems();
-  if(!low.length){showToast('admin-toast','No items below 35% right now','success');return;}
-  sendAlertEmail(low,false);
-}
-function sendAlertEmail(lowItems,isTest){
-  if(!ejsReady){
-    showToast('admin-toast','EmailJS not initialised — check your config in Settings','error');
-    return;
-  }
-  var btn=document.getElementById('alert-send-btn');
-  if(btn){btn.disabled=true;btn.textContent='Sending…';}
-
-  var lines=lowItems.map(function(i){
-    return '• '+i.name+'\n  Stock: '+i.stock+' / '+i.initial+' units ('+i.pct+'% remaining)';
-  }).join('\n\n');
-
-  var params={
-    to_email:emailCfg.email,
-    admin_email:emailCfg.email,
-    items_list:isTest?'[TEST] '+lines:lines,
-    total_alerts:lowItems.length,
-    sent_at:new Date().toLocaleString(),
-    subject:isTest?'[TEST] Inventory Alert — EmailJS is working!':'⚠️ Low Stock Alert — '+lowItems.length+' item'+(lowItems.length>1?'s':'')+' need restocking'
-  };
-
-  emailjs.send(emailCfg.service,emailCfg.template,params).then(function(){
-    if(btn){btn.disabled=false;btn.textContent='📧 Email Admin';}
-    showToast('admin-toast',isTest?'Test email sent! Check '+emailCfg.email+' ✓':'Alert email sent to '+emailCfg.email+' ✓','success');
-  },function(err){
-    if(btn){btn.disabled=false;btn.textContent='📧 Email Admin';}
-    var msg=err&&err.text?err.text:JSON.stringify(err);
-    showToast('admin-toast','Email failed: '+msg,'error');
-    var el=document.getElementById('email-status-display');
-    if(el){el.className='email-status error';el.innerHTML='<span>●</span> Last send failed: '+msg;}
+// REAL-TIME LISTENERS
+function initApp() {
+  // Sync Inventory
+  db.collection("inventory").orderBy("name").onSnapshot(snap => {
+    inv = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if(inv.length === 0) seedData();
+    renderDash();
+    renderManage();
+    populateSel();
+    
+    // Hide loading
+    document.querySelector('.login-h1').textContent = "Welcome back.";
+    document.getElementById('login-sub-text').textContent = "Sign in to continue.";
+    document.getElementById('role-grid').style.display = 'grid';
   });
-}
-function checkAndAutoSend(){
-  if(!emailCfg.auto||!ejsReady)return;
-  var low=getLowStockItems();
-  if(low.length)sendAlertEmail(low,false);
-}
 
-/* ════════════════════════════════════
-   SHARE LINK
-════════════════════════════════════ */
-function getShareLink(){
-  var base=window.location.href.split('?')[0].split('#')[0];
-  return base+'?access=team';
-}
-function initShareLink(){
-  var el=document.getElementById('share-link-val');
-  if(el)el.value=getShareLink();
-}
-function copyShareLink(){
-  var link=getShareLink();
-  navigator.clipboard.writeText(link).then(function(){
-    var btn=document.getElementById('copy-btn');
-    btn.classList.add('copied');
-    btn.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-    setTimeout(function(){
-      btn.classList.remove('copied');
-      btn.innerHTML='<svg id="copy-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy link';
-    },2200);
-  }).catch(function(){
-    var el=document.getElementById('share-link-val');
-    el.select();document.execCommand('copy');
+  // Sync Logs
+  db.collection("transactions").orderBy("time", "desc").limit(50).onSnapshot(snap => {
+    txns = snap.docs.map(doc => doc.data());
+    renderLog();
+    renderDash();
+  });
+
+  // Sync Users
+  db.collection("users").onSnapshot(snap => {
+    users = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderUsers();
+  });
+
+  // Sync Config (Password)
+  db.collection("config").doc("settings").onSnapshot(doc => {
+    if(doc.exists()) adminPw = doc.data().adminPassword;
   });
 }
 
-(function(){
-  var params=new URLSearchParams(window.location.search);
-  if(params.get('access')==='team'){
-    window.addEventListener('DOMContentLoaded',function(){
-      setTimeout(showUserLogin, 150);
-    });
-  }
-})();
-
-/* ════════════════════════════════════
-   SCREENS
-════════════════════════════════════ */
-function show(id){
-  var ss=document.querySelectorAll('.screen');
-  for(var i=0;i<ss.length;i++){ss[i].classList.remove('active');ss[i].style.animation='';}
-  var el=document.getElementById(id);
-  el.style.animation='none';
-  el.classList.add('active');
-  void el.offsetWidth;
-  el.style.animation='';
+// INITIAL SEEDING
+function seedData() {
+  const defaults = [
+    {name:"YAS Island Mugs",stock:21,initial:21}, {name:"Bahrain Diaries",stock:46,initial:46},
+    {name:"DC Diaries",stock:122,initial:122}, {name:"Abu Dhabi Diaries",stock:324,initial:324}
+  ];
+  defaults.forEach(item => db.collection("inventory").add(item));
 }
 
 /* ════════════════════════════════════
-   ADMIN LOGIN
+   ACTIONS
 ════════════════════════════════════ */
-function showAdminLogin(){
-  hideUserLogin();
-  document.getElementById('admin-login-area').style.display='block';
-  setTimeout(function(){document.getElementById('pw-input').focus();},150);
+async function addItem() {
+  const name = document.getElementById('new-name').value.trim();
+  if(!name) return;
+  await db.collection("inventory").add({ name, stock: 0, initial: 1 });
+  document.getElementById('new-name').value = '';
+  showToast('admin-toast', 'Item added');
 }
-function hideAdminLogin(){
-  document.getElementById('admin-login-area').style.display='none';
-  document.getElementById('pw-input').value='';
+
+async function updateStock(itemId, newStock, itemName, type, qty, person) {
+  await db.collection("inventory").doc(itemId).update({ stock: newStock });
+  await db.collection("transactions").add({
+    time: new Date().toISOString(),
+    item: itemName,
+    type,
+    qty,
+    person
+  });
 }
+
+function adminAdd(id, name) {
+  const qty = parseInt(prompt("Add amount:"));
+  if(!qty) return;
+  const item = inv.find(i => i.id === id);
+  updateStock(id, item.stock + qty, name, 'IN', qty, 'Admin');
+}
+
+function adminRemove(id, name) {
+  const qty = parseInt(prompt("Remove amount:"));
+  if(!qty) return;
+  const item = inv.find(i => i.id === id);
+  updateStock(id, Math.max(0, item.stock - qty), name, 'OUT', qty, 'Admin');
+}
+
+async function submitUserEntry() {
+  const itemName = document.getElementById('u-item').value;
+  const qty = parseInt(document.getElementById('u-qty').value);
+  if(!itemName || !qty) return;
+
+  const item = inv.find(i => i.name === itemName);
+  let next = item.stock;
+  if(uType === 'IN') next += qty;
+  else if(uType === 'OUT') next = Math.max(0, next - qty);
+  else next = qty;
+
+  await updateStock(item.id, next, itemName, uType, qty, currentUser);
+  showToast('user-toast', 'Entry Saved');
+}
+
+async function addUser() {
+  const name = document.getElementById('nu-name').value.trim();
+  const pw = document.getElementById('nu-pw').value;
+  if(!name || !pw) return;
+  await db.collection("users").add({ name, pw, active: true });
+  document.getElementById('nu-name').value = '';
+  document.getElementById('nu-pw').value = '';
+}
+
+/* ════════════════════════════════════
+   UI HELPERS
+════════════════════════════════════ */
+function renderDash() {
+  let units = 0, low = 0;
+  let html = '';
+  inv.forEach(item => {
+    units += item.stock;
+    const pct = Math.round((item.stock / (item.initial || 1)) * 100);
+    if(pct < 35) low++;
+    const badge = item.stock === 0 ? 'out' : pct < 35 ? 'low' : 'ok';
+    const color = item.stock === 0 ? 'var(--red)' : pct < 35 ? 'var(--amber)' : 'var(--green)';
+    
+    html += `<tr>
+      <td>${item.name}</td>
+      <td style="font-family:var(--mono)">${item.stock}</td>
+      <td><span class="bar-wrap"><span class="bar-fill" style="width:${pct}%;background:${color}"></span></span></td>
+      <td>
+        <button class="btn-secondary" onclick="adminAdd('${item.id}','${item.name}')">+</button>
+        <button class="btn-danger" onclick="adminRemove('${item.id}','${item.name}')">−</button>
+      </td>
+    </tr>`;
+  });
+  document.getElementById('dash-tbody').innerHTML = html;
+  document.getElementById('s-units').textContent = units;
+  document.getElementById('s-total').textContent = inv.length;
+  document.getElementById('s-low').textContent = low;
+  document.getElementById('s-txns').textContent = txns.length;
+
+  const banner = document.getElementById('low-stock-banner');
+  if(low > 0) banner.classList.add('show'); else banner.classList.remove('show');
+}
+
+function renderLog() {
+  let html = '';
+  txns.forEach(t => {
+    html += `<tr>
+      <td style="font-size:11px">${new Date(t.time).toLocaleTimeString()}</td>
+      <td>${t.item}</td>
+      <td style="font-weight:600">${t.type}</td>
+      <td>${t.qty}</td>
+      <td>${t.person}</td>
+    </tr>`;
+  });
+  document.getElementById('log-tbody').innerHTML = html;
+}
+
+function renderUsers() {
+  let html = '';
+  users.forEach(u => {
+    html += `<div class="user-row">
+      <span>${u.name}</span>
+      <button class="btn-danger" onclick="db.collection('users').doc('${u.id}').delete()">Remove</button>
+    </div>`;
+  });
+  document.getElementById('users-list').innerHTML = html || 'No team members';
+  
+  // Update login datalist
+  const dl = document.getElementById('user-names-list');
+  dl.innerHTML = users.map(u => `<option value="${u.name}">`).join('');
+}
+
+function renderManage() {
+  document.getElementById('manage-tbody').innerHTML = inv.map(i => `
+    <tr><td>${i.name}</td><td><button class="btn-danger" onclick="db.collection('inventory').doc('${i.id}').delete()">Delete</button></td></tr>
+  `).join('');
+}
+
+function populateSel() {
+  const s = document.getElementById('u-item');
+  if(!s) return;
+  s.innerHTML = inv.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
+}
+
+/* ════════════════════════════════════
+   AUTH & TABS
+════════════════════════════════════ */
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showAdminLogin(){document.getElementById('role-grid').style.display='none';document.getElementById('admin-login-area').style.display='block';}
+function hideAdminLogin(){document.getElementById('role-grid').style.display='grid';document.getElementById('admin-login-area').style.display='none';}
 function tryAdminLogin(){
-  var p=document.getElementById('pw-input').value;
-  if(p===pw){
-    hideAdminLogin();
-    renderAdmin();
-    show('screen-admin');
-  } else {
-    showToast('login-toast','Incorrect password. Try again.','error');
-    document.getElementById('pw-input').classList.add('shake');
-    setTimeout(function(){document.getElementById('pw-input').classList.remove('shake');},500);
-  }
+  if(document.getElementById('pw-input').value === adminPw) show('screen-admin');
+  else showToast('login-toast', 'Incorrect Password', 'error');
 }
-
-/* ════════════════════════════════════
-   USER LOGIN
-════════════════════════════════════ */
-function showUserLogin(){
-  hideAdminLogin();
-  var dl=document.getElementById('user-names-list');
-  dl.innerHTML='';
-  for(var i=0;i<users.length;i++){
-    if(users[i].active){var opt=document.createElement('option');opt.value=users[i].name;dl.appendChild(opt);}
-  }
-  document.getElementById('user-login-area').style.display='block';
-  setTimeout(function(){document.getElementById('user-login-name').focus();},150);
-}
-function hideUserLogin(){
-  document.getElementById('user-login-area').style.display='none';
-  document.getElementById('user-login-name').value='';
-  document.getElementById('user-login-pw').value='';
-}
+function showUserLogin(){document.getElementById('role-grid').style.display='none';document.getElementById('user-login-area').style.display='block';}
+function hideUserLogin(){document.getElementById('role-grid').style.display='grid';document.getElementById('user-login-area').style.display='none';}
 function tryUserLogin(){
-  var name=document.getElementById('user-login-name').value.trim();
-  var p=document.getElementById('user-login-pw').value;
-  var t='user-login-toast';
-  if(!name){showToast(t,'Please enter your name','error');return;}
-  if(!p){showToast(t,'Please enter your password','error');return;}
-  var found=null;
-  for(var i=0;i<users.length;i++){
-    if(users[i].name.toLowerCase()===name.toLowerCase()&&users[i].active){found=users[i];break;}
-  }
-  if(!found){showToast(t,'Name not found or account inactive.','error');return;}
-  if(found.pw!==p){showToast(t,'Incorrect password.','error');return;}
-  hideUserLogin();
-  currentUser=found.name;
-  enterUser();
+  const name = document.getElementById('user-login-name').value;
+  const p = document.getElementById('user-login-pw').value;
+  const u = users.find(x => x.name === name && x.pw === p);
+  if(u) { currentUser = name; document.getElementById('user-welcome').textContent = "Hi, " + name; show('screen-user'); }
+  else showToast('user-login-toast', 'Invalid credentials', 'error');
 }
-function enterUser(){
-  populateSel();
-  document.getElementById('user-welcome').textContent='Welcome, '+currentUser+' 👋';
-  document.getElementById('user-pill-name').textContent=currentUser;
-  show('screen-user');
+function logout(){location.reload();}
+function switchTab(t, b){
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('apanel-'+t).classList.add('active');
 }
-function logout(){currentUser='';show('screen-login');}
-
-/* ════════════════════════════════════
-   ADMIN TABS
-════════════════════════════════════ */
-function switchTab(tab,el){
-  var ts=document.querySelectorAll('.tab-btn');for(var i=0;i<ts.length;i++)ts[i].classList.remove('active');
-  var ps=document.querySelectorAll('.panel');for(var i=0;i<ps.length;i++){ps[i].classList.remove('active');}
-  el.classList.add('active');
-  var panel=document.getElementById('apanel-'+tab);
-  panel.classList.add('active');
-  panel.style.animation='none';void panel.offsetWidth;panel.style.animation='fadeUp .35s cubic-bezier(.16,1,.3,1)';
-  if(tab==='dashboard')renderDash();
-  if(tab==='inventory')renderManage();
-  if(tab==='log')renderLog();
-  if(tab==='users'){renderUsers();initShareLink();}
-  if(tab==='settings'){loadEmailConfigUI();}
+function selType(t, b){
+  uType = t;
+  document.querySelectorAll('.type-btn').forEach(x=>x.className='type-btn');
+  b.className = 'type-btn sel-' + t.toLowerCase();
+}
+function showToast(id, msg, type='success'){
+  const el = document.getElementById(id);
+  el.textContent = msg; el.className = 'toast show ' + type;
+  setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-/* ════════════════════════════════════
-   USER MANAGEMENT
-════════════════════════════════════ */
-function addUser(){
-  var name=document.getElementById('nu-name').value.trim();
-  var p=document.getElementById('nu-pw').value;
-  var t='admin-toast';
-  if(!name){toast2(t,'Enter a name');return;}
-  if(p.length<4){toast2(t,'Password must be ≥ 4 characters');return;}
-  for(var i=0;i<users.length;i++){
-    if(users[i].name.toLowerCase()===name.toLowerCase()){toast2(t,'User already exists');return;}
-  }
-  users.push({name:name,pw:p,active:true});
-  sv('iv4_users',users);
-  document.getElementById('nu-name').value='';
-  document.getElementById('nu-pw').value='';
-  renderUsers();
-  showToast(t,'"'+name+'" added to team ✓','success');
-}
-function toggleUser(idx){
-  users[idx].active=!users[idx].active;
-  sv('iv4_users',users);renderUsers();
-  showToast('admin-toast',users[idx].name+(users[idx].active?' activated ✓':' deactivated'),'success');
-}
-function resetUserPw(idx){
-  var np=prompt('New password for "'+users[idx].name+'" (min 4 characters):');
-  if(!np)return;
-  if(np.length<4){alert('Password too short.');return;}
-  users[idx].pw=np;sv('iv4_users',users);
-  showToast('admin-toast','Password updated for '+users[idx].name,'success');
-}
-function deleteUser(idx){
-  if(!confirm('Remove "'+users[idx].name+'"?'))return;
-  var name=users[idx].name;users.splice(idx,1);sv('iv4_users',users);renderUsers();
-  showToast('admin-toast','"'+name+'" removed','success');
-}
-function renderUsers(){
-  document.getElementById('user-count').textContent=users.length;
-  var el=document.getElementById('users-list');
-  if(!users.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>No team members yet.</div>';return;}
-  var html='';
-  for(var i=0;i<users.length;i++){
-    var u=users[i];
-    var sb=u.active?'<span class="badge active-u">Active</span>':'<span class="badge inactive-u">Inactive</span>';
-    var tl=u.active?'Deactivate':'Activate';
-    html+='<div class="user-row" style="animation-delay:'+(i*0.04)+'s">';
-    html+='<div class="user-info"><div class="user-name-txt">'+escHtml(u.name)+'</div><div class="user-meta">'+sb+'</div></div>';
-    html+='<div class="user-actions">';
-    html+='<button class="btn-secondary" style="font-size:12px;padding:5px 10px" onclick="resetUserPw('+i+')">Reset PW</button>';
-    html+='<button class="btn-secondary" style="font-size:12px;padding:5px 10px" onclick="toggleUser('+i+')">'+tl+'</button>';
-    html+='<button class="btn-danger" style="font-size:12px;padding:5px 10px" onclick="deleteUser('+i+')">Remove</button>';
-    html+='</div></div>';
-  }
-  el.innerHTML=html;
-}
-function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-/* ════════════════════════════════════
-   STOCK ENTRY
-════════════════════════════════════ */
-function selType(t,btn){
-  uType=t;
-  var bs=document.querySelectorAll('.type-btn');for(var i=0;i<bs.length;i++)bs[i].className='type-btn';
-  if(t==='IN')btn.className='type-btn sel-in';
-  else if(t==='OUT')btn.className='type-btn sel-out';
-  else btn.className='type-btn sel-adj';
-  updateHint();
-}
-function updateHint(){
-  var sel=document.getElementById('u-item').value;
-  var it=null;for(var i=0;i<inv.length;i++)if(inv[i].name===sel){it=inv[i];break;}
-  var h=document.getElementById('u-hint');
-  if(!it){h.textContent='';return;}
-  if(uType==='OUT')h.textContent='Current stock: '+it.stock+' units';
-  else if(uType==='ADJ')h.textContent='Sets absolute value. Current: '+it.stock+' units';
-  else h.textContent='';
-}
-function populateSel(){
-  var s=document.getElementById('u-item');
-  s.innerHTML='<option value="">— select item —</option>';
-  for(var i=0;i<inv.length;i++){var o=document.createElement('option');o.value=inv[i].name;o.textContent=inv[i].name;s.appendChild(o);}
-  s.onchange=updateHint;
-}
-function submitUserEntry(){
-  var item=document.getElementById('u-item').value;
-  var qty=parseInt(document.getElementById('u-qty').value);
-  var notes=document.getElementById('u-notes').value.trim();
-  var t='user-toast';
-  if(!item){showToast(t,'Please select an item','error');return;}
-  if(!qty||qty<1){showToast(t,'Enter a valid quantity','error');return;}
-  var it=null;for(var i=0;i<inv.length;i++)if(inv[i].name===item){it=inv[i];break;}
-  if(uType==='OUT'&&qty>it.stock){showToast(t,'Cannot remove more than '+it.stock+' units','error');return;}
-  applyTxn(it,uType,qty);
-  txns.unshift({time:new Date().toISOString(),item:item,type:uType,qty:qty,person:currentUser,notes:notes});
-  saveAll();
-  document.getElementById('u-item').value='';
-  document.getElementById('u-qty').value='1';
-  document.getElementById('u-notes').value='';
-  document.getElementById('u-hint').textContent='';
-  var lbl=uType==='IN'?'added to':uType==='OUT'?'removed from':'adjusted for';
-  showToast(t,qty+' units '+lbl+' '+item+' ✓','success');
-  checkAndAutoSend();
-}
-function applyTxn(it,type,qty){
-  if(type==='IN')it.stock+=qty;
-  else if(type==='OUT')it.stock=Math.max(0,it.stock-qty);
-  else it.stock=qty;
-}
-
-/* ════════════════════════════════════
-   ADMIN ACTIONS
-════════════════════════════════════ */
-function adminAdd(name){
-  var qty=parseInt(prompt('Add stock to "'+name+'"\nEnter quantity:'));
-  if(!qty||qty<1)return;
-  var it=null;for(var i=0;i<inv.length;i++)if(inv[i].name===name){it=inv[i];break;}
-  it.stock+=qty;
-  txns.unshift({time:new Date().toISOString(),item:name,type:'IN',qty:qty,person:'Admin',notes:'Admin addition'});
-  saveAll();renderDash();
-  showToast('admin-toast',qty+' units added to '+name+' ✓','success');
-}
-function adminRemove(name){
-  var it=null;for(var i=0;i<inv.length;i++)if(inv[i].name===name){it=inv[i];break;}
-  var qty=parseInt(prompt('Remove from "'+name+'"\nCurrent: '+it.stock+'\nEnter quantity:'));
-  if(!qty||qty<1)return;
-  if(qty>it.stock){alert('Cannot remove more than '+it.stock);return;}
-  it.stock-=qty;
-  txns.unshift({time:new Date().toISOString(),item:name,type:'OUT',qty:qty,person:'Admin',notes:'Admin removal'});
-  saveAll();renderDash();
-  showToast('admin-toast',qty+' units removed from '+name+' ✓','success');
-  checkAndAutoSend();
-}
-
-/* ════════════════════════════════════
-   RENDER
-════════════════════════════════════ */
-function renderAdmin(){renderDash();}
-function animateVal(el,newVal){
-  el.classList.remove('animate');void el.offsetWidth;
-  el.textContent=typeof newVal==='number'?newVal.toLocaleString():newVal;
-  el.classList.add('animate');
-}
-function renderDash(){
-  var q=(document.getElementById('dash-search').value||'').toLowerCase();
-  var filtered=[];for(var i=0;i<inv.length;i++)if(inv[i].name.toLowerCase().indexOf(q)>=0)filtered.push(inv[i]);
-  var total=0;for(var i=0;i<inv.length;i++)total+=inv[i].stock;
-  var low=0;for(var i=0;i<inv.length;i++)if(inv[i].stock>0&&inv[i].stock<20)low++;
-  animateVal(document.getElementById('s-total'),inv.length);
-  animateVal(document.getElementById('s-units'),total);
-  animateVal(document.getElementById('s-low'),low);
-  animateVal(document.getElementById('s-txns'),txns.length);
-  var rows='';
-  for(var i=0;i<filtered.length;i++){
-    var item=filtered[i];
-    var init=item.initial||item.stock||1;
-    var pct=Math.round(Math.min(100,(item.stock/Math.max(init,1))*100));
-    var fill=item.stock===0?'var(--red)':item.stock<20?'var(--amber)':'var(--green)';
-    var badge=item.stock===0?'<span class="badge out">Out</span>':item.stock<20?'<span class="badge low">Low</span>':'<span class="badge ok">OK</span>';
-    var last='';for(var j=0;j<txns.length;j++)if(txns[j].item===item.name){last=fmtTime(txns[j].time);break;}
-    var esc=item.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    rows+='<tr style="animation-delay:'+(i*0.03)+'s"><td style="font-weight:500">'+item.name+'</td>';
-    rows+='<td style="font-weight:600;font-family:var(--mono)">'+item.stock.toLocaleString()+'</td>';
-    rows+='<td><span class="bar-wrap"><span class="bar-fill" style="width:'+pct+'%;background:'+fill+'"></span></span><span style="font-family:var(--mono);font-size:12px;color:var(--text2)">'+pct+'%</span></td>';
-    rows+='<td style="color:var(--text2);font-size:12px;white-space:nowrap">'+(last||'—')+'</td>';
-    rows+='<td>'+badge+'</td>';
-    rows+='<td><div style="display:flex;gap:6px"><button class="btn-secondary" style="font-size:12px;padding:5px 10px" onclick="adminAdd(\''+esc+'\')">+ Add</button><button class="btn-danger" style="font-size:12px;padding:5px 10px" onclick="adminRemove(\''+esc+'\')">− Remove</button></div></td></tr>';
-  }
-  document.getElementById('dash-tbody').innerHTML=rows;
-  updateLowStockBanner();
-}
-function renderManage(){
-  var rows='';
-  for(var i=0;i<inv.length;i++){
-    var item=inv[i];
-    var badge=item.stock===0?'<span class="badge out">Out</span>':item.stock<20?'<span class="badge low">Low</span>':'<span class="badge ok">OK</span>';
-    rows+='<tr style="animation-delay:'+(i*0.03)+'s"><td style="font-weight:500">'+item.name+'</td><td style="font-family:var(--mono);font-weight:600">'+item.stock+'</td><td>'+badge+'</td><td><button class="btn-danger" style="font-size:12px;padding:5px 10px" onclick="removeItem('+i+')">Remove</button></td></tr>';
-  }
-  document.getElementById('manage-tbody').innerHTML=rows;
-}
-function addItem(){
-  var name=document.getElementById('new-name').value.trim();
-  var stock=parseInt(document.getElementById('new-stock').value)||0;
-  if(!name){showToast('admin-toast','Enter an item name','error');return;}
-  for(var i=0;i<inv.length;i++)if(inv[i].name.toLowerCase()===name.toLowerCase()){showToast('admin-toast','Item already exists','error');return;}
-  inv.push({name:name,stock:stock,initial:stock});
-  if(stock>0)txns.unshift({time:new Date().toISOString(),item:name,type:'IN',qty:stock,person:'Admin',notes:'Initial stock'});
-  saveAll();
-  document.getElementById('new-name').value='';
-  document.getElementById('new-stock').value='0';
-  renderManage();
-  showToast('admin-toast','"'+name+'" added with '+stock+' units ✓','success');
-}
-function removeItem(idx){
-  if(!confirm('Remove "'+inv[idx].name+'"? This cannot be undone.'))return;
-  var name=inv[idx].name;inv.splice(idx,1);saveAll();renderManage();
-  showToast('admin-toast','"'+name+'" removed','success');
-}
-function renderLog(){
-  var tbody=document.getElementById('log-tbody');
-  var empty=document.getElementById('log-empty');
-  if(!txns.length){tbody.innerHTML='';empty.style.display='block';return;}
-  empty.style.display='none';
-  var rows='';
-  for(var i=0;i<txns.length;i++){
-    var t=txns[i];
-    var cls=t.type==='IN'?'log-in':t.type==='OUT'?'log-out':'log-adj';
-    var lbl=t.type==='IN'?'+IN':t.type==='OUT'?'−OUT':'~ADJ';
-    rows+='<tr style="animation-delay:'+(i*0.02)+'s"><td style="color:var(--text2);font-size:12px;white-space:nowrap;font-family:var(--mono)">'+fmtTime(t.time)+'</td><td style="font-weight:500">'+t.item+'</td><td><span class="'+cls+'">'+lbl+'</span></td><td style="font-family:var(--mono)">'+t.qty+'</td><td>'+t.person+'</td><td style="color:var(--text2);font-size:12px">'+(t.notes||'—')+'</td></tr>';
-  }
-  tbody.innerHTML=rows;
-}
-function fmtTime(iso){
-  var d=new Date(iso);var today=new Date();
-  var isToday=d.toDateString()===today.toDateString();
-  var time=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  return isToday?'Today '+time:d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+time;
-}
-
-/* ════════════════════════════════════
-   SETTINGS
-════════════════════════════════════ */
-function changePassword(){
-  var old=document.getElementById('pw-old').value;
-  var nw=document.getElementById('pw-new').value;
-  var cn=document.getElementById('pw-confirm').value;
-  if(old!==pw){showToast('admin-toast','Current password incorrect','error');return;}
-  if(nw.length<6){showToast('admin-toast','New password must be ≥ 6 characters','error');return;}
-  if(nw!==cn){showToast('admin-toast','Passwords do not match','error');return;}
-  pw=nw;sv('iv4_pw',pw);
-  document.getElementById('pw-old').value='';
-  document.getElementById('pw-new').value='';
-  document.getElementById('pw-confirm').value='';
-  showToast('admin-toast','Password updated ✓','success');
-}
-function clearData(){
-  if(!confirm('Clear all transactions? Stock levels stay.\nThis cannot be undone.'))return;
-  txns=[];sv('iv4_txns',txns);renderLog();
-  showToast('admin-toast','Transaction log cleared','success');
-}
-function exportCSV(){
-  if(!txns.length){showToast('admin-toast','No transactions to export','error');return;}
-  var rows=[['Time','Item','Type','Qty','Person','Notes']];
-  for(var i=0;i<txns.length;i++){var t=txns[i];rows.push([t.time,t.item,t.type,t.qty,t.person,t.notes||'']);}
-  var csv='';
-  for(var i=0;i<rows.length;i++){var r=rows[i];var line='';for(var j=0;j<r.length;j++){if(j>0)line+=',';line+='"'+String(r[j]).replace(/"/g,'""')+'"';}csv+=line+'\n';}
-  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='inventory_log.csv';a.click();
-}
-
-/* ════════════════════════════════════
-   TOAST HELPERS
-════════════════════════════════════ */
-function showToast(id,msg,type){
-  var el=document.getElementById(id);
-  el.textContent=msg;
-  el.className='toast '+(type||'success')+' show';
-  clearTimeout(el._t);
-  el._t=setTimeout(function(){el.classList.remove('show');},3000);
-}
-function toast2(id,msg){showToast(id,msg,'error');}
-
-/* ════════════════════════════════════
-   SHAKE ANIMATION
-════════════════════════════════════ */
-var shakeStyle=document.createElement('style');
-shakeStyle.textContent='@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}.shake{animation:shake .4s ease}';
-document.head.appendChild(shakeStyle);
-
-/* Init */
-window.addEventListener('load',function(){
-  initEmailJS();
-  var params=new URLSearchParams(window.location.search);
-  if(params.get('access')==='team'){showUserLogin();}
-});
+// Start
+initApp();
 </script>
 </body>
 </html>
