@@ -47,34 +47,34 @@
 </head>
 <body>
 
-    <div id="loading-overlay">Tbo Academy | Syncing Data...</div>
+    <div id="loading-overlay">Tbo Academy | Connecting...</div>
 
     <div class="header-logo">
         <img src="https://www.tboacademy.com/images/black-option-1.png" alt="Tbo Academy">
     </div>
 
-    <!-- LOGIN SCREEN -->
+    <!-- 1. LOGIN -->
     <div id="screen-login" class="screen active">
         <div class="auth-card">
             <h1>Inventory Database</h1>
-            <p style="color: var(--text-light); margin-bottom: 2rem;">Internal Management Portal</p>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">Tbo Academy Internal System</p>
             <div id="auth-main">
                 <button class="btn btn-g" onclick="loginWithGoogle()">
                     <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 3.66 29.261 2 24 2 11.85 2 2 11.85 2 24s9.85 22 22 22c11.045 0 20-8.955 20-20 0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 3.66 29.261 2 24 2c-7.22 0-13.639 3.414-17.694 8.691z"/><path fill="#4CAF50" d="M24 46c11.045 0 20-8.955 20-20 0-1.341-.138-2.65-.389-3.917H24v8h11.303c-1.127 3.181-3.415 5.812-6.303 7.461l6.303 7.461C39.117 41.282 43.14 34.12 44 26.083z"/><path fill="#1976D2" d="M6.306 33.309l6.571-4.819C14.655 32.892 18.961 36 24 36c2.888 0 5.524-.962 7.697-2.539l6.303 7.461C34.015 44.186 29.282 46 24 46c-7.22 0-13.639-3.414-17.694-8.691z"/></svg>
                     Sign in with Google
                 </button>
-                <button class="btn btn-p" onclick="showEmailForm()">Email & Password</button>
-                <hr style="margin: 20px 0; border:0; border-top: 1px solid #eee;">
+                <button class="btn btn-p" onclick="showEmailForm()">Email & Password Login</button>
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                 <button class="btn btn-s" onclick="showAdminPin()">Admin Access</button>
             </div>
             <div id="email-area" style="display:none;">
                 <input type="email" id="auth-email" placeholder="Email"><input type="password" id="auth-pass" placeholder="Password">
                 <button class="btn btn-p" onclick="handleEmail('login')">Sign In</button>
-                <button class="btn btn-s" onclick="handleEmail('signup')">Sign Up</button>
+                <button class="btn btn-s" onclick="handleEmail('signup')">Create Account</button>
                 <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
             </div>
             <div id="admin-area" style="display:none;">
-                <input type="password" id="admin-pin" placeholder="Admin PIN">
+                <input type="password" id="admin-pin" placeholder="Enter Admin Pin">
                 <button class="btn btn-p" onclick="tryAdminLogin()">Open Dashboard</button>
                 <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
             </div>
@@ -91,9 +91,9 @@
         <div class="container" style="max-width: 600px;">
             <div class="nav"><h2 id="user-name-tag">Hello</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
             <div class="card">
-                <div id="stock-preview">Select an item...</div>
+                <div id="stock-preview">Select an item to view stock</div>
                 <label>Item</label><select id="user-items" onchange="updatePreview()"></select>
-                <label>Action</label><select id="user-type"><option value="OUT">Stock Out (-)</option><option value="IN">Restock (+)</option></select>
+                <label>Type</label><select id="user-type"><option value="OUT">Stock Out (-)</option><option value="IN">Restock (+)</option></select>
                 <label>Quantity</label><input type="number" id="user-qty" value="1" min="1">
                 <label>Purpose (Mandatory)</label><textarea id="user-notes"></textarea>
                 <button class="btn btn-p" onclick="submitUserEntry()">Submit Update</button>
@@ -112,24 +112,22 @@
                 <button class="tab-btn" onclick="switchTab('logs')">History</button>
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
             </div>
-            <div id="tab-overview" class="tab-content">
-                <table id="admin-dash-list"></table>
-            </div>
+            <div id="tab-overview" class="tab-content"><table id="admin-dash-list"></table></div>
             <div id="tab-team" class="tab-content" style="display:none">
-                <h3>Pending Approval</h3><table id="pending-table"></table>
+                <h3>Requests</h3><table id="pending-table"></table>
                 <h3 style="margin-top:20px">Authorized Team</h3><table id="approved-table"></table>
             </div>
             <div id="tab-inv" class="tab-content" style="display:none">
-                <div class="card"><h3>Create New Item</h3><input type="text" id="add-name" placeholder="Name"><input type="number" id="add-qty" placeholder="Opening Stock"><button class="btn btn-p" onclick="adminAddItem()">Create</button></div>
+                <div class="card"><h3>Add Item</h3><input type="text" id="add-name" placeholder="Name"><input type="number" id="add-qty" placeholder="Opening Stock"><button class="btn btn-p" onclick="adminAddItem()">Create</button></div>
                 <table id="admin-inv-list"></table>
             </div>
             <div id="tab-logs" class="tab-content" style="display:none">
-                <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export History</button></div>
+                <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
                 <table id="admin-log-list"></table>
             </div>
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
-                    <h3>Recipients</h3>
+                    <h3>Notification Recipients</h3>
                     <label>To: Email 1</label><input type="email" id="set-e1">
                     <label>To: Email 2</label><input type="email" id="set-e2">
                     <label>Cc: Email</label><input type="email" id="set-ecc">
@@ -138,9 +136,9 @@
                     <label>Public Key</label><input type="text" id="set-key">
                     <label>Service ID</label><input type="text" id="set-svc">
                     <label>Template ID</label><input type="text" id="set-tpl">
-                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <label>Admin Pin</label><input type="password" id="set-pin">
-                    <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
+                    <hr style="margin:20px 0; border:0; border-top: 1px solid #eee;">
+                    <label>Change Admin Pin</label><input type="password" id="set-pin">
+                    <button class="btn btn-p" onclick="saveAdminSet()">Save Settings</button>
                 </div>
             </div>
         </div>
@@ -193,7 +191,7 @@
         window.showAdminPin = () => { document.getElementById('auth-main').style.display='none'; document.getElementById('admin-area').style.display='block'; };
         window.tryAdminLogin = () => {
             if (document.getElementById('admin-pin').value === adminPin) { isAdmin = true; showScreen('screen-admin'); initAdminSync(); }
-            else alert("Invalid PIN");
+            else alert("Invalid Pin");
         };
 
         function initAdminSync() {
@@ -211,7 +209,7 @@
             });
         }
 
-        // CORE LOGIC: UPDATED FOR MULTI-EMAIL AND ITEM NAME FIX
+        // --- UPDATED CORE LOGIC: ITEM NAME + MULTI-RECIPIENT EMAIL ---
         window.submitUserEntry = async () => {
             const itemName = String(document.getElementById('user-items').value);
             const type = document.getElementById('user-type').value;
@@ -223,28 +221,32 @@
             if(type === 'OUT' && qty > item.stock) return alert("Insufficient stock.");
 
             const newQty = type === 'IN' ? item.stock + qty : item.stock - qty;
-            const threshold = (item.initial || 1) * 0.35;
+            const percentage = (newQty / (item.initial || 1)) * 100;
 
             await updateDoc(doc(db, "inventory", item.id), { stock: newQty });
             await addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: itemName, type, qty, user: auth.currentUser.email, note });
 
-            // SENSE TARGET
-            if (type === 'OUT' && newQty <= threshold) {
-                if (settings.svc && settings.tpl) {
+            // SENSE 35% TARGET
+            if (type === 'OUT' && percentage <= 35) {
+                if (settings.ejsSvc && settings.ejsTpl) {
                     const lowCount = inv.filter(i => ( (i.name === itemName ? newQty : i.stock) / (i.initial || 1) ) <= 0.35).length;
                     
-                    emailjs.send(settings.svc, settings.tpl, {
+                    // Create consolidated To: field string
+                    let toList = [];
+                    if(settings.e1) toList.push(settings.e1);
+                    if(settings.e2) toList.push(settings.e2);
+
+                    emailjs.send(settings.ejsSvc, settings.ejsTpl, {
                         item_name: itemName,
                         current_stock: newQty,
                         sent_at: new Date().toLocaleString(),
                         total_low_items: lowCount,
-                        to_email_1: settings.e1 || '',
-                        to_email_2: settings.e2 || '',
+                        to_email: toList.join(', '), // Sends to both in one string
                         cc_email: settings.ecc || ''
-                    });
+                    }).then(() => console.log("Emails sent.")).catch(err => console.error("Email failed:", err));
                 }
             }
-            alert("Success!");
+            alert("Entry Saved!");
             document.getElementById('user-notes').value = "";
         };
 
@@ -261,8 +263,8 @@
         window.toggleAccess = async (uid, status) => { await updateDoc(doc(db, "users_metadata", uid), { approved: status }); };
         function renderUserTables() {
             const p = users.filter(u => !u.approved), a = users.filter(u => u.approved);
-            const badge = document.getElementById('req-badge');
-            if(badge) { if(p.length > 0) { badge.textContent = p.length; badge.style.display = 'inline'; } else { badge.style.display = 'none'; } }
+            const b = document.getElementById('req-badge');
+            if(b) { if(p.length > 0) { b.textContent = p.length; b.style.display = 'inline'; } else { b.style.display = 'none'; } }
             document.getElementById('pending-table').innerHTML = p.map(u => `<tr><td>${u.name}</td><td><button class="btn-approve" onclick="toggleAccess('${u.uid}', true)">Approve</button></td></tr>`).join('');
             document.getElementById('approved-table').innerHTML = a.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.uid}', false)">Revoke</button></td></tr>`).join('');
         }
@@ -282,8 +284,7 @@
 
         onSnapshot(doc(db, "settings", "config"), (d) => {
             if(d.exists()) {
-                const data = d.data(); adminPin = data.pin || 'admin123';
-                settings = data;
+                const data = d.data(); adminPin = data.pin || 'admin123'; settings = data;
                 if(data.ejsKey) emailjs.init(data.ejsKey);
                 if(document.getElementById('set-pin')) {
                     document.getElementById('set-pin').value = data.pin || '';
@@ -299,9 +300,9 @@
 
         window.saveAdminSet = async () => {
             await setDoc(doc(db, "settings", "config"), { 
-                pin: document.getElementById('set-pin').value, e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-email-cc') ? document.getElementById('set-email-cc').value : document.getElementById('set-ecc').value, ejsKey: document.getElementById('set-key').value, ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value 
+                pin: document.getElementById('set-pin').value, e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-ecc').value, ejsKey: document.getElementById('set-key').value, ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value 
             });
-            alert("Saved Globally");
+            alert("Settings Saved Globally");
         };
 
         window.showEmailForm = () => { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='block'; };
