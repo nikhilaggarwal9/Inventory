@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Inventory Pro | Sync</title>
+    <title>Inventory Database | Tbo Academy</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
@@ -46,13 +46,13 @@
 </head>
 <body>
 
-    <div id="loading-overlay">Connecting to Cloud Database...</div>
+    <div id="loading-overlay">Connecting to Database...</div>
 
     <!-- LOGIN SCREEN -->
     <div id="screen-login" class="screen active">
         <div class="auth-card">
-            <h1>Inventory Cloud</h1>
-            <p style="color: var(--text-light); margin-bottom: 2rem;">Cloud Storage Enabled</p>
+            <h1>Inventory Database</h1>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">Tbo Academy</p>
             <div id="login-main">
                 <button class="role-btn" onclick="toggleAuthArea('admin')"><strong>Admin</strong><br><small>Full dashboard</small></button>
                 <button class="role-btn" onclick="toggleAuthArea('user')"><strong>Team Member</strong><br><small>Record entries</small></button>
@@ -79,6 +79,7 @@
                 <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
             </div>
 
+            <!-- Dashboard -->
             <div id="tab-dash" class="tab-content">
                 <div class="grid">
                     <div class="stat-card"><div>Total Units</div><div class="stat-val" id="stat-units">0</div></div>
@@ -88,6 +89,7 @@
                 <table><thead><tr><th>Item</th><th>Stock</th><th>Action</th></tr></thead><tbody id="dash-table"></tbody></table>
             </div>
 
+            <!-- Inventory -->
             <div id="tab-items" class="tab-content" style="display:none">
                 <div class="stat-card" style="margin-bottom: 1rem;">
                     <h3>Add Item</h3>
@@ -97,15 +99,22 @@
                 <table id="manage-table"></table>
             </div>
 
+            <!-- History / LOGS -->
             <div id="tab-logs" class="tab-content" style="display:none">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Transaction History</h3>
+                    <button class="btn btn-p" onclick="exportToCSV()">Download CSV (Excel)</button>
+                </div>
                 <table><thead><tr><th>Time</th><th>Item</th><th>Type</th><th>Qty</th><th>User</th></tr></thead><tbody id="log-table"></tbody></table>
             </div>
 
+            <!-- Team -->
             <div id="tab-team" class="tab-content" style="display:none">
                 <div class="stat-card" style="margin-bottom: 1rem;"><input type="text" id="new-user-name" placeholder="Name"><input type="password" id="new-user-pass" placeholder="Pass"><button class="btn btn-p" onclick="handleAddUser()">Add Member</button></div>
                 <div id="team-list"></div>
             </div>
 
+            <!-- Settings -->
             <div id="tab-settings" class="tab-content" style="display:none">
                 <div class="stat-card" style="margin-bottom: 1rem;">
                     <h3>Change Admin Password</h3>
@@ -157,23 +166,12 @@
         let currentMode = '', loggedInUser = '', cloudAdminPass = 'admin123';
 
         async function initRealtime() {
-            // Check for initial seed
-            const invCheck = await getDocs(collection(db, "inventory"));
-            if (invCheck.empty) {
-                const initialInventory = [{name:"Bahrain Diaries",stock:150}];
-                for (let item of initialInventory) {
-                    await addDoc(collection(db, "inventory"), { ...item, initial: item.stock || 1 });
-                }
-            }
-
-            // Real-time Inventory Listener
             onSnapshot(collection(db, "inventory"), (snap) => {
                 inventory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 updateUI();
                 document.getElementById('loading-overlay').style.display = 'none';
             });
 
-            // Real-time Settings/Password Listener
             onSnapshot(doc(db, "settings", "appConfig"), (d) => {
                 if (d.exists()) {
                     const data = d.data();
@@ -184,7 +182,7 @@
                 }
             });
 
-            onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(50)), (snap) => {
+            onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(200)), (snap) => {
                 logs = snap.docs.map(d => d.data());
                 renderLogs();
             });
@@ -195,7 +193,34 @@
             });
         }
 
-        // STOCK UPDATE & DASHBOARD RECALCULATION
+        // CSV EXPORT LOGIC
+        window.exportToCSV = () => {
+            if (logs.length === 0) return alert("No history found to export");
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Time,Item,Type,Quantity,User\n";
+            
+            logs.forEach(l => {
+                const row = [
+                    new Date(l.time).toLocaleString().replace(',', ''),
+                    l.item,
+                    l.type,
+                    l.qty,
+                    l.user
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "inventory_history.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // UI & AUTH LOGIC
         window.updateStock = async (id, name, currentStock, change, type, initial) => {
             let newQty;
             if (type === 'IN') newQty = currentStock + change;
@@ -208,7 +233,6 @@
                 item: name, type, qty: change, user: loggedInUser || 'Admin'
             });
 
-            // Email Alert Logic (35%)
             const threshold = initial * 0.35;
             if (type === 'OUT' && newQty <= threshold && config.serviceId) {
                 emailjs.send(config.serviceId, config.templateId, {
@@ -217,20 +241,15 @@
             }
         };
 
-        // CUSTOM DELETE FUNCTION
         window.handleDeleteItem = async (id, name) => {
-            if (confirm(`Are you sure you want to permanently delete "${name}" from the database?`)) {
-                await deleteDoc(doc(db, "inventory", id));
-                alert("Deleted successfully");
-            }
+            if (confirm(`Permanently delete "${name}"?`)) await deleteDoc(doc(db, "inventory", id));
         };
 
-        // PASSWORD MANAGEMENT
         window.saveAdminPassword = async () => {
             const newPass = document.getElementById('set-admin-pass').value;
-            if (newPass.length < 4) return alert("Password too short");
+            if (newPass.length < 4) return alert("Too short");
             await setDoc(doc(db, "settings", "appConfig"), { adminPassword: newPass }, { merge: true });
-            alert("Admin password updated successfully");
+            alert("Updated");
             document.getElementById('set-admin-pass').value = '';
         };
 
@@ -242,7 +261,7 @@
                 adminEmail: document.getElementById('set-admin-email').value
             };
             await setDoc(doc(db, "settings", "appConfig"), { emailConfig }, { merge: true });
-            alert("Email settings saved");
+            alert("Saved");
         };
 
         function fillSettingsUI() {
@@ -252,17 +271,12 @@
             document.getElementById('set-admin-email').value = config.adminEmail || '';
         }
 
-        // UI RENDERING
         function updateUI() {
-            // Recalculate Stats for Dashboard
             const totalUnits = inventory.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
             const lowCount = inventory.filter(i => (i.stock / (i.initial || 1)) < 0.35).length;
-            
             document.getElementById('stat-units').textContent = totalUnits;
             document.getElementById('stat-items').textContent = inventory.length;
             document.getElementById('stat-low').textContent = lowCount;
-
-            // Dashboard Table
             document.getElementById('dash-table').innerHTML = inventory.map(i => {
                 const pct = (i.stock / (i.initial || 1)) * 100;
                 const status = i.stock === 0 ? 'Out' : pct < 35 ? 'Low' : 'OK';
@@ -271,32 +285,25 @@
                     <button class="btn btn-d" onclick="updateStock('${i.id}','${i.name}', ${i.stock}, 1, 'OUT', ${i.initial})">−</button>
                 </td></tr>`;
             }).join('');
-
-            // Inventory Manage Table (Custom Deletion)
-            document.getElementById('manage-table').innerHTML = `
-                <thead><tr><th>Item Name</th><th>Initial Stock</th><th>Action</th></tr></thead>
-                <tbody>${inventory.map(i => `<tr><td>${i.name}</td><td>${i.initial}</td><td><button class="btn btn-d" onclick="handleDeleteItem('${i.id}','${i.name}')">Delete</button></td></tr>`).join('')}</tbody>
-            `;
-            
+            document.getElementById('manage-table').innerHTML = `<thead><tr><th>Name</th><th>Initial</th><th>Action</th></tr></thead>
+                <tbody>${inventory.map(i => `<tr><td>${i.name}</td><td>${i.initial}</td><td><button class="btn btn-d" onclick="handleDeleteItem('${i.id}','${i.name}')">Delete</button></td></tr>`).join('')}</tbody>`;
             document.getElementById('entry-item').innerHTML = inventory.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
         }
 
-        // AUTH & NAVIGATION
         window.toggleAuthArea = (m) => { currentMode = m; document.getElementById('login-main').style.display = 'none'; document.getElementById('auth-area').style.display = 'block'; document.getElementById('user-name-field').style.display = m==='user'?'block':'none'; };
         window.attemptLogin = () => {
             const p = document.getElementById('login-pass').value;
             if (currentMode === 'admin') {
-                if (p === cloudAdminPass) showScreen('screen-admin'); else alert("Incorrect Admin Password");
+                if (p === cloudAdminPass) showScreen('screen-admin'); else alert("Error");
             } else {
                 const n = document.getElementById('login-name').value.trim();
                 const u = users.find(x => x.name.toLowerCase() === n.toLowerCase() && x.pass === p);
-                if (u) { loggedInUser = u.name; document.getElementById('user-greeting').textContent = "Hi, "+u.name; showScreen('screen-user'); } else alert("User Error");
+                if (u) { loggedInUser = u.name; showScreen('screen-user'); } else alert("Error");
             }
         };
         window.logout = () => location.reload();
         window.handleAddItem = async () => {
-            const n = document.getElementById('new-item-name').value;
-            const s = parseInt(document.getElementById('new-item-stock').value) || 0;
+            const n = document.getElementById('new-item-name').value, s = parseInt(document.getElementById('new-item-stock').value) || 0;
             if (n) await addDoc(collection(db, "inventory"), { name: n, stock: s, initial: s || 1 });
             document.getElementById('new-item-name').value = ''; document.getElementById('new-item-stock').value = '';
         };
@@ -307,7 +314,7 @@
         };
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-' + t).style.display = 'block'; event.target.classList.add('active'); };
-        function renderLogs() { document.getElementById('log-table').innerHTML = logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.type}</td><td>${l.qty}</td><td>${l.user}</td></tr>`).join(''); }
+        function renderLogs() { document.getElementById('log-table').innerHTML = logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td><strong>${l.type}</strong></td><td>${l.qty}</td><td>${l.user}</td></tr>`).join(''); }
         function renderTeam() { document.getElementById('team-list').innerHTML = users.map(u => `<div class="nav" style="background:#fff; padding:10px; border-radius:8px; margin-bottom:5px;"><span>${u.name}</span><button class="btn btn-d" onclick="deleteDoc(doc(db,'users','${u.id}'))">Remove</button></div>`).join(''); }
 
         initRealtime();
