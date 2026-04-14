@@ -16,16 +16,22 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; }
         body { background: var(--bg); color: var(--text); }
+        
+        /* Logo Header */
+        .header-logo { text-align: center; padding: 20px 0; background: white; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .header-logo img { height: 50px; object-fit: contain; }
+
         .screen { display: none; min-height: 100vh; padding: 20px; }
         .screen.active { display: block; }
         .container { max-width: 1200px; margin: 0 auto; }
         
-        .auth-card { max-width: 400px; margin: 60px auto; background: var(--surface); padding: 2.5rem; border-radius: var(--radius); box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+        .auth-card { max-width: 440px; margin: 40px auto; background: var(--surface); padding: 2.5rem; border-radius: var(--radius); box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; }
         
         .btn { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; width: 100%; margin-top: 10px; }
         .btn-p { background: var(--primary); color: white; }
-        .btn-g { background: white; color: #444; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-g { background: white; color: #444; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .btn-g img { width: 20px; height: 20px; }
         .btn-s { background: var(--border); color: var(--text); }
         .btn-danger { background: var(--danger); color: white; width: auto; padding: 6px 12px; font-size: 12px; }
         .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 12px; font-size: 12px; }
@@ -43,33 +49,40 @@
         th { background: #f8fafc; color: var(--text-light); font-size: 11px; text-transform: uppercase; }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
-        .req-count { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 5px; }
+        .badge-ok { background: #e6fcf5; color: var(--success); }
+        .badge-low { background: #fff9db; color: var(--warning); }
+        .badge-out { background: #fff5f5; color: var(--danger); }
         
-        #stock-preview { background: #f0f7ff; color: var(--primary); padding: 15px; border-radius: 8px; font-weight: 700; text-align: center; margin-bottom: 20px; }
+        #stock-preview { background: #ebf4ff; color: var(--primary); padding: 15px; border-radius: 10px; font-weight: 700; text-align: center; margin-bottom: 20px; border: 1px dashed var(--primary); }
         #loading-overlay { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; align-items: center; justify-content: center; font-weight: 700; }
     </style>
 </head>
 <body>
 
-    <div id="loading-overlay">Tbo Academy | Syncing with Cloud...</div>
+    <div id="loading-overlay">Tbo Academy | Synchronizing...</div>
+
+    <!-- GLOBAL HEADER LOGO -->
+    <div class="header-logo">
+        <img src="https://tboacademy.com/assets/images/tbo-logo.png" alt="Tbo Academy">
+    </div>
 
     <!-- 1. LOGIN SCREEN -->
     <div id="screen-login" class="screen active">
         <div class="auth-card">
-            <h1>Inventory Database</h1>
-            <p style="color: var(--text-light); margin-bottom: 2rem;">Tbo Academy Internal System</p>
+            <h1 style="font-size: 24px;">Inventory Database</h1>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">Internal Management Portal</p>
             
             <div id="auth-main">
                 <button class="btn btn-g" onclick="loginWithGoogle()">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/controller/google.svg" width="18"> Sign in with Google
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/controller/google.svg"> Sign in with Google
                 </button>
                 <button class="btn btn-p" onclick="showEmailForm()">Email & Password Login</button>
                 <hr style="margin: 20px 0; border:0; border-top: 1px solid #eee;">
-                <button class="btn btn-s" onclick="showAdminPin()">Admin Access</button>
+                <button class="btn btn-s" onclick="showAdminPin()">Admin Dashboard</button>
             </div>
 
             <div id="email-area" style="display:none;">
-                <input type="email" id="auth-email" placeholder="Email">
+                <input type="email" id="auth-email" placeholder="Work Email">
                 <input type="password" id="auth-pass" placeholder="Password">
                 <button class="btn btn-p" onclick="handleEmail('login')">Sign In</button>
                 <button class="btn btn-s" onclick="handleEmail('signup')">Create Account</button>
@@ -77,8 +90,8 @@
             </div>
 
             <div id="admin-area" style="display:none;">
-                <input type="password" id="admin-pin" placeholder="Admin Secret Pin">
-                <button class="btn btn-p" onclick="tryAdminLogin()">Login to Dashboard</button>
+                <input type="password" id="admin-pin" placeholder="Admin PIN">
+                <button class="btn btn-p" onclick="tryAdminLogin()">Open Dashboard</button>
                 <button class="btn btn-s" onclick="location.reload()" style="background:none;">← Back</button>
             </div>
         </div>
@@ -87,11 +100,10 @@
     <!-- 2. PENDING ACCESS SCREEN -->
     <div id="screen-pending" class="screen">
         <div class="auth-card">
-            <div style="font-size: 40px; margin-bottom: 15px;">🔒</div>
-            <h2>Access Restricted</h2>
-            <p style="margin: 15px 0; color: var(--text-light);">Your account is registered, but requires Admin Approval before you can use the database.</p>
-            <p><strong>Please inform the Admin.</strong></p>
-            <button class="btn btn-s" onclick="signOutUser()">Logout</button>
+            <div style="font-size: 40px; margin-bottom: 15px;">⏳</div>
+            <h2>Access Pending</h2>
+            <p style="margin: 15px 0; color: var(--text-light);">Your account is registered. Please wait for the Admin to approve your access.</p>
+            <button class="btn btn-s" onclick="signOutUser()">Sign Out</button>
         </div>
     </div>
 
@@ -103,11 +115,23 @@
                 <button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button>
             </div>
             <div class="card">
-                <div id="stock-preview">Checking stock...</div>
-                <label>Item</label><select id="user-items" onchange="updatePreview()"></select>
-                <label>Action</label><select id="user-type"><option value="OUT">Stock Out (-)</option><option value="IN">Stock In (+)</option></select>
-                <label>Quantity</label><input type="number" id="user-qty" value="1" min="1">
-                <label>Notes (Mandatory)</label><textarea id="user-notes" placeholder="Reason for inventory movement..."></textarea>
+                <div id="stock-preview">Loading inventory status...</div>
+                
+                <label>Item</label>
+                <select id="user-items" onchange="updatePreview()"></select>
+                
+                <label>Action</label>
+                <select id="user-type">
+                    <option value="OUT">Stock Out (-)</option>
+                    <option value="IN">Stock In (+)</option>
+                </select>
+                
+                <label>Quantity</label>
+                <input type="number" id="user-qty" value="1" min="1">
+                
+                <label>Notes (Mandatory)</label>
+                <textarea id="user-notes" placeholder="Reason for inventory movement..."></textarea>
+                
                 <button class="btn btn-p" onclick="submitUserEntry()">Submit Update</button>
             </div>
         </div>
@@ -123,7 +147,7 @@
 
             <div class="tab-bar">
                 <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
-                <button class="tab-btn" onclick="switchTab('team')">Team Management <span id="req-badge" class="req-count" style="display:none">0</span></button>
+                <button class="tab-btn" onclick="switchTab('team')">Team Approval <span id="req-badge" class="req-count" style="background: red; color: white; padding: 2px 6px; border-radius: 50%; font-size: 10px; display: none;">0</span></button>
                 <button class="tab-btn" onclick="switchTab('inv')">Inventory</button>
                 <button class="tab-btn" onclick="switchTab('logs')">History</button>
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
@@ -131,48 +155,48 @@
 
             <div id="tab-overview" class="tab-content">
                 <div class="grid">
-                    <div class="card"><h3>Total Stock</h3><div id="stat-total" style="font-size: 2rem; font-weight: 700;">0</div></div>
-                    <div class="card"><h3>Alerts</h3><div id="stat-low" style="font-size: 2rem; font-weight: 700; color:var(--danger)">0</div></div>
+                    <div class="card"><h3>Total Units</h3><div id="stat-total" style="font-size: 2rem; font-weight: 700;">0</div></div>
+                    <div class="card"><h3>Low Stock</h3><div id="stat-low" style="font-size: 2rem; font-weight: 700; color:var(--danger)">0</div></div>
                 </div>
                 <table><thead><tr><th>Item</th><th>Stock</th><th>Status</th></tr></thead><tbody id="admin-dash-list"></tbody></table>
             </div>
 
             <div id="tab-team" class="tab-content" style="display:none">
                 <div id="pending-section" style="display: none; margin-bottom: 2rem;">
-                    <h3 style="color: var(--danger); margin-bottom: 10px;">New Access Requests</h3>
+                    <h3 style="color: var(--danger); margin-bottom: 10px;">Pending Requests</h3>
                     <div class="card"><table id="pending-table"></table></div>
                 </div>
-                <h3>Authorized Team Members</h3>
+                <h3>Authorized Team</h3>
                 <div class="card"><table id="approved-table"></table></div>
             </div>
 
             <div id="tab-inv" class="tab-content" style="display:none">
                 <div class="card" style="margin-bottom: 20px;">
                     <h3>Add Item</h3>
-                    <input type="text" id="add-name" placeholder="Name">
-                    <input type="number" id="add-qty" placeholder="Opening Stock">
-                    <button class="btn btn-p" onclick="adminAddItem()">Add Item</button>
+                    <input type="text" id="add-name" placeholder="Item Name">
+                    <input type="number" id="add-qty" placeholder="Initial Stock">
+                    <button class="btn btn-p" onclick="adminAddItem()">Create Item</button>
                 </div>
                 <table id="admin-inv-list"></table>
             </div>
 
             <div id="tab-logs" class="tab-content" style="display:none">
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>Transaction Log</h3>
-                    <button class="btn btn-s" style="width:auto;" onclick="downloadCSV()">Export Excel</button>
+                    <h3>History</h3>
+                    <button class="btn btn-s" style="width:auto;" onclick="downloadCSV()">Export CSV</button>
                 </div>
                 <table id="admin-log-list"></table>
             </div>
 
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
-                    <h3>System Settings</h3>
-                    <label>Admin Dashboard Pin</label><input type="password" id="set-pin">
-                    <label>Admin Alert Email</label><input type="email" id="set-email">
+                    <h3>Settings</h3>
+                    <label>Admin PIN</label><input type="password" id="set-pin">
+                    <label>Admin Email</label><input type="email" id="set-email">
                     <label>EmailJS Public Key</label><input type="text" id="set-key">
                     <label>EmailJS Service ID</label><input type="text" id="set-svc">
                     <label>EmailJS Template ID</label><input type="text" id="set-tpl">
-                    <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
+                    <button class="btn btn-p" onclick="saveAdminSet()">Save Settings</button>
                 </div>
             </div>
         </div>
@@ -214,9 +238,11 @@
                 onSnapshot(uRef, (snap) => {
                     if (isAdmin) return;
                     const data = snap.data();
-                    if (data.approved) {
+                    if (data && data.approved) {
                         showScreen('screen-user');
                         document.getElementById('user-name-tag').textContent = "Hello, " + data.name;
+                        // Trigger inventory population specifically for user
+                        initSync();
                     } else {
                         showScreen('screen-pending');
                     }
@@ -246,27 +272,28 @@
 
         function initAdminSync() {
             onSnapshot(collection(db, "users_metadata"), (s) => { users = s.docs.map(d => d.data()); renderUserTables(); });
-            onSnapshot(collection(db, "inventory"), (s) => { inv = s.docs.map(d => ({id: d.id, ...d.data()})); renderAdminInv(); });
+            initSync();
             onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), (s) => { logs = s.docs.map(d => d.data()); renderLogs(); });
+        }
+
+        function initSync() {
+             onSnapshot(collection(db, "inventory"), (s) => { 
+                inv = s.docs.map(d => ({id: d.id, ...d.data()})); 
+                renderAdminInv(); 
+            });
         }
 
         // USER PERMISSIONS
         function renderUserTables() {
             const pending = users.filter(u => !u.approved);
             const approved = users.filter(u => u.approved);
-            
-            // Notification Badge
             const badge = document.getElementById('req-badge');
             if(pending.length > 0) { badge.textContent = pending.length; badge.style.display = 'inline'; } else { badge.style.display = 'none'; }
-
-            // Pending Table
             document.getElementById('pending-section').style.display = pending.length > 0 ? 'block' : 'none';
-            document.getElementById('pending-table').innerHTML = `<thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead><tbody>` + 
-                pending.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><button class="btn-approve" onclick="toggleAccess('${u.uid}', true)">Approve Access</button></td></tr>`).join('') + `</tbody>`;
-
-            // Approved Table
-            document.getElementById('approved-table').innerHTML = `<thead><tr><th>Name</th><th>Email</th><th>Last Login</th><th>Action</th></tr></thead><tbody>` + 
-                approved.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><small>${new Date(u.lastLogin).toLocaleTimeString()}</small></td><td><button class="btn-danger" onclick="toggleAccess('${u.uid}', false)">Revoke Access</button></td></tr>`).join('') + `</tbody>`;
+            document.getElementById('pending-table').innerHTML = `<thead><tr><th>Name</th><th>Action</th></tr></thead><tbody>` + 
+                pending.map(u => `<tr><td>${u.name}</td><td><button class="btn-approve" onclick="toggleAccess('${u.uid}', true)">Approve</button></td></tr>`).join('') + `</tbody>`;
+            document.getElementById('approved-table').innerHTML = `<thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead><tbody>` + 
+                approved.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.uid}', false)">Revoke</button></td></tr>`).join('') + `</tbody>`;
         }
 
         window.toggleAccess = async (uid, status) => { await updateDoc(doc(db, "users_metadata", uid), { approved: status }); };
@@ -292,25 +319,46 @@
 
         // UI HELPERS
         function renderAdminInv() {
-            document.getElementById('stat-total').textContent = inv.reduce((a,b)=>a+b.stock,0);
-            document.getElementById('stat-low').textContent = inv.filter(i=>(i.stock/i.initial)<0.35).length;
+            // Stats
+            document.getElementById('stat-total').textContent = inv.reduce((a,b)=>a+(Number(b.stock)||0),0);
+            document.getElementById('stat-low').textContent = inv.filter(i=>(i.stock/(i.initial||1))<0.35).length;
+            
+            // Overview Table
             document.getElementById('admin-dash-list').innerHTML = inv.map(i => {
-                const pct = (i.stock/i.initial)*100;
+                const pct = (i.stock/(i.initial||1))*100;
                 const badge = i.stock === 0 ? 'out' : pct < 35 ? 'low' : 'ok';
                 return `<tr><td>${i.name}</td><td><strong>${i.stock}</strong></td><td><span class="badge badge-${badge}">${badge}</span></td></tr>`;
             }).join('');
+
+            // Inventory Manage Table
             document.getElementById('admin-inv-list').innerHTML = `<thead><tr><th>Item</th><th>Initial</th><th>Action</th></tr></thead><tbody>` + 
                 inv.map(i => `<tr><td>${i.name}</td><td>${i.initial}</td><td><button class="btn-danger" onclick="deleteDoc(doc(db,'inventory','${i.id}'))">Delete</button></td></tr>`).join('') + `</tbody>`;
-            document.getElementById('user-items').innerHTML = inv.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
+            
+            // Populate Dropdown for users
+            const userSelect = document.getElementById('user-items');
+            if (userSelect) {
+                const currentVal = userSelect.value;
+                userSelect.innerHTML = inv.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
+                if (currentVal) userSelect.value = currentVal;
+            }
             updatePreview();
         }
 
         window.updatePreview = () => {
-            const i = inv.find(x => x.name === document.getElementById('user-items').value);
-            document.getElementById('stock-preview').textContent = i ? `Current Stock: ${i.stock} Units` : "--";
+            const selectEl = document.getElementById('user-items');
+            const previewEl = document.getElementById('stock-preview');
+            if (!selectEl || !previewEl) return;
+            
+            const i = inv.find(x => x.name === selectEl.value);
+            if (i) {
+                previewEl.textContent = `Current Stock: ${i.stock} Units`;
+                previewEl.style.color = (i.stock/(i.initial||1)) < 0.35 ? 'var(--danger)' : 'var(--primary)';
+            } else {
+                previewEl.textContent = "No items in inventory.";
+            }
         };
 
-        // SETTINGS
+        // SETTINGS SYNC
         onSnapshot(doc(db, "settings", "config"), (d) => {
             if(d.exists()) {
                 const data = d.data(); adminPin = data.pin || 'admin123';
@@ -330,9 +378,9 @@
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
         window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value) || 0; if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q || 1 }); };
-        function renderLogs() { document.getElementById('admin-log-list').innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Type</th><th>User</th><th>Note</th></tr></thead><tbody>` + logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.type}</td><td><small>${l.user}</small></td><td>${l.note}</td></tr>`).join('') + `</tbody>`; }
-        window.downloadCSV = () => { let csv = "Time,Item,Type,User,Note\n"; logs.forEach(l => csv += `${new Date(l.time).toLocaleString().replace(',','')},${l.item},${l.type},${l.user},"${l.note}"\n`); const b = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'History.csv'; a.click(); };
-        function fillSetUI(d) { document.getElementById('set-pin').value = d.pin || ''; document.getElementById('set-email').value = d.alertEmail || ''; document.getElementById('set-key').value = d.ejsKey || ''; document.getElementById('set-svc').value = d.ejsSvc || ''; document.getElementById('set-tpl').value = d.ejsTpl || ''; }
+        function renderLogs() { document.getElementById('admin-log-list').innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Type</th><th>User</th></tr></thead><tbody>` + logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.type}</td><td><small>${l.user}</small></td></tr>`).join('') + `</tbody>`; }
+        window.downloadCSV = () => { let csv = "Time,Item,Type,User\n"; logs.forEach(l => csv += `${new Date(l.time).toLocaleString().replace(',','')},${l.item},${l.type},${l.user}\n`); const b = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'History.csv'; a.click(); };
+        function fillSetUI(d) { document.getElementById('set-pin').value = d.pin || ''; document.getElementById('set-email').value = d.alertEmail || ''; document.getElementById('set-key').value = d.ejsKey || ''; document.getElementById('set-ejs-svc').value = d.ejsSvc || ''; document.getElementById('set-tpl').value = d.ejsTpl || ''; }
     </script>
 </body>
 </html>
