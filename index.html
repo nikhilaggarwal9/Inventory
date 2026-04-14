@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Database | Tbo Academy</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet">
+    <!-- EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
     <style>
@@ -44,7 +45,7 @@
 </head>
 <body>
 
-    <div id="loading-overlay">Checking Active Session...</div>
+    <div id="loading-overlay">Tbo Academy | Verifying Cloud Session...</div>
 
     <!-- 1. LOGIN SCREEN -->
     <div id="screen-login" class="screen active">
@@ -52,18 +53,14 @@
             <h1>Inventory Database</h1>
             <p style="color: var(--text-light); margin-bottom: 2rem;">Tbo Academy</p>
             <div id="login-main">
-                <button class="role-btn" onclick="openAuth('admin')"><strong>Admin</strong><br><small>Full Access</small></button>
-                <button class="role-btn" onclick="openAuth('user')"><strong>Team Member</strong><br><small>Stock Entry</small></button>
+                <button class="role-btn" onclick="openAdminPin()"><strong>Admin Access</strong><br><small>Requires Admin Pin</small></button>
+                <button class="role-btn" onclick="loginWithGoogle()"><strong>Google Sign-In</strong><br><small>Team Member Verification</small></button>
             </div>
-            <div id="auth-form" style="display: none;">
-                <h3 id="auth-title">Login</h3>
-                <div id="user-fields" style="display: none;">
-                    <label>Your Name</label>
-                    <select id="login-name-select"></select>
-                </div>
-                <label>Password</label>
-                <input type="password" id="login-pass">
-                <button class="btn btn-p" style="width: 100%;" onclick="performLogin()">Sign In</button>
+            <div id="admin-pin-area" style="display: none;">
+                <h3>Admin Login</h3>
+                <label>Enter Admin Pin</label>
+                <input type="password" id="admin-pin">
+                <button class="btn btn-p" style="width: 100%;" onclick="attemptAdminLogin()">Sign In</button>
                 <button class="btn btn-s" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Back</button>
             </div>
         </div>
@@ -72,15 +69,15 @@
     <!-- 2. ADMIN SCREEN -->
     <div id="screen-admin" class="screen">
         <div class="container">
-            <div class="nav"><h2>⚡ Admin Control</h2><button class="btn btn-s" onclick="localLogout()">Sign Out</button></div>
+            <div class="nav"><h2>⚡ Admin</h2><button class="btn btn-s" onclick="triggerSignOut()">Sign Out</button></div>
             <div class="tab-bar">
                 <button class="tab-btn active" onclick="switchTab('dash')">Overview</button>
                 <button class="tab-btn" onclick="switchTab('items')">Inventory</button>
                 <button class="tab-btn" onclick="switchTab('logs')">History</button>
-                <button class="tab-btn" onclick="switchTab('team')">Sessions & Team</button>
+                <button class="tab-btn" onclick="switchTab('team')">Live Sessions</button>
+                <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
             </div>
 
-            <!-- Dashboard Overview -->
             <div id="tab-dash" class="tab-content">
                 <div class="grid">
                     <div class="stat-card"><div>Total Units</div><div class="stat-val" id="stat-units">0</div></div>
@@ -90,37 +87,41 @@
                 <table><thead><tr><th>Item Name</th><th>Stock</th><th>Action</th></tr></thead><tbody id="dash-table"></tbody></table>
             </div>
 
-            <!-- History Logs -->
             <div id="tab-logs" class="tab-content" style="display:none">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-                    <h3>Transaction Log</h3>
-                    <button class="btn btn-p" onclick="exportCSV()">Export CSV</button>
+                    <h3>History</h3>
+                    <button class="btn btn-p" onclick="exportCSV()">Download Excel</button>
                 </div>
                 <table><thead><tr><th>Time</th><th>Item</th><th>Type</th><th>Qty</th><th>User</th><th>Purpose</th></tr></thead><tbody id="log-table"></tbody></table>
             </div>
 
-            <!-- Sessions & Team -->
             <div id="tab-team" class="tab-content" style="display:none">
-                <div class="grid">
-                    <div class="stat-card">
-                        <h3>Active Online Sessions</h3>
-                        <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Ending a session forces that specific device to log out.</p>
-                        <div id="session-list"></div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Add Team Member</h3>
-                        <input type="text" id="new-user-name" placeholder="Full Name">
-                        <input type="password" id="new-user-pass" placeholder="Password">
-                        <button class="btn btn-p" onclick="addUser()">Create Member</button>
-                        <h4 style="margin-top: 20px;">Authorized Members</h4>
-                        <div id="team-list"></div>
-                    </div>
+                <div class="stat-card">
+                    <h3>Active Online Users</h3>
+                    <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Google-verified sessions currently active.</p>
+                    <div id="session-list"></div>
                 </div>
             </div>
 
             <div id="tab-items" class="tab-content" style="display:none">
-                <div class="stat-card"><h3>Add Item</h3><input type="text" id="new-item-name" placeholder="Name"><input type="number" id="new-item-stock" placeholder="Initial Stock"><button class="btn btn-p" onclick="addItem()">Add Item</button></div>
+                <div class="stat-card"><h3>New Item</h3><input type="text" id="new-item-name"><input type="number" id="new-item-stock"><button class="btn btn-p" onclick="addItem()">Add</button></div>
                 <table id="manage-table"></table>
+            </div>
+
+            <div id="tab-settings" class="tab-content" style="display:none">
+                <div class="stat-card">
+                    <h3>Automated Email Alerts (EmailJS)</h3>
+                    <label>Public Key</label><input type="text" id="set-ejs-key">
+                    <label>Service ID</label><input type="text" id="set-ejs-svc">
+                    <label>Template ID</label><input type="text" id="set-ejs-tpl">
+                    <label>Admin Email</label><input type="text" id="set-admin-email">
+                    <button class="btn btn-p" onclick="saveSettings()">Save Configuration</button>
+                </div>
+                <div class="stat-card" style="margin-top: 1rem;">
+                    <h3>Change Admin Pin</h3>
+                    <input type="password" id="set-admin-pass">
+                    <button class="btn btn-p" onclick="updateAdminPass()">Update Pin</button>
+                </div>
             </div>
         </div>
     </div>
@@ -128,14 +129,14 @@
     <!-- 3. USER SCREEN -->
     <div id="screen-user" class="screen">
         <div class="container" style="max-width: 500px;">
-            <div class="nav"><h2 id="hello-user">Hello User</h2><button class="btn btn-s" onclick="localLogout()">Logout</button></div>
+            <div class="nav"><h2 id="hello-user">Hello User</h2><button class="btn btn-s" onclick="triggerSignOut()">Logout</button></div>
             <div class="auth-card" style="margin-top: 0; max-width: 100%;">
                 <div id="stock-info">Current Stock: --</div>
                 <label>Item</label><select id="user-item-sel" onchange="showStock()"></select>
                 <label>Type</label><select id="user-type"><option value="OUT">Stock Out (-)</option><option value="IN">Stock In (+)</option></select>
-                <label>Quantity</label><input type="number" id="user-qty" value="1">
-                <label>Purpose/Notes (Required)</label><textarea id="user-notes" placeholder="Reason for taking inventory"></textarea>
-                <button class="btn btn-p" style="width: 100%;" onclick="submitEntry()">Submit Entry</button>
+                <label>Quantity</label><input type="number" id="user-qty" value="1" min="1">
+                <label>Purpose/Notes (Mandatory)</label><textarea id="user-notes" placeholder="Why are you taking/adding inventory?"></textarea>
+                <button class="btn btn-p" style="width: 100%;" onclick="submitEntry()">Submit Record</button>
             </div>
         </div>
     </div>
@@ -143,6 +144,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, setDoc, deleteDoc, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB2-G7-Xt4LnARWQ6L9TYIhiLXhs9HHg6E",
@@ -155,92 +157,82 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-        let inv = [], logs = [], users = [], sessions = [], adminPass = 'admin123';
-        let currentMode = '', loggedInUser = '', currentSessionId = '';
+        let inv = [], logs = [], sessions = [], config = {};
+        let adminPass = 'admin123', loggedInUser = '', isAdmin = false;
 
-        // --- SESSION LOGIC ---
-        async function checkSession() {
-            const saved = JSON.parse(localStorage.getItem('tbo_active_session'));
-            if (!saved) {
-                document.getElementById('loading-overlay').style.display='none';
-                return;
-            }
-
-            const sSnap = await getDoc(doc(db, "sessions", saved.id));
-            if (sSnap.exists()) {
-                loggedInUser = saved.user;
-                currentSessionId = saved.id;
-                if (saved.role === 'admin') show('screen-admin');
-                else {
-                    document.getElementById('hello-user').textContent = "Hello " + saved.user;
-                    show('screen-user');
+        // 1. AUTH & SESSIONS
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                loggedInUser = user.displayName;
+                // Check if user has an active session doc (Admin can delete this to kick user)
+                const sRef = doc(db, "sessions", user.uid);
+                const sSnap = await getDoc(sRef);
+                
+                if (!sSnap.exists()) {
+                    // Create session if it doesn't exist (First time login)
+                    await setDoc(sRef, { name: user.displayName, email: user.email, time: new Date().toISOString() });
                 }
-                // Live listener for session termination
-                onSnapshot(doc(db, "sessions", saved.id), (snap) => {
-                    if (!snap.exists()) {
-                        alert("Session ended by Admin.");
-                        localLogout();
+
+                // Listen for session deletion
+                onSnapshot(sRef, (snap) => {
+                    if (!snap.exists() && !isAdmin) {
+                        alert("Session revoked by Admin.");
+                        triggerSignOut();
                     }
                 });
+
+                document.getElementById('hello-user').textContent = "Hello " + user.displayName;
+                if (!isAdmin) show('screen-user');
             } else {
-                localStorage.removeItem('tbo_active_session');
+                if (!isAdmin) show('screen-login');
             }
             document.getElementById('loading-overlay').style.display='none';
-        }
+        });
 
-        window.performLogin = async () => {
-            const p = document.getElementById('login-pass').value;
-            let role = '', user = '';
-
-            if(currentMode === 'admin') {
-                if(p === adminPass) { role = 'admin'; user = 'Admin'; }
-                else return alert("Invalid Admin Pin");
-            } else {
-                user = document.getElementById('login-name-select').value;
-                const u = users.find(x => x.name === user && x.pass === p);
-                if(u) role = 'team'; else return alert("Wrong Password");
-            }
-
-            const sRef = await addDoc(collection(db, "sessions"), {
-                user, role, time: new Date().toISOString()
-            });
-            
-            localStorage.setItem('tbo_active_session', JSON.stringify({ id: sRef.id, user, role }));
-            location.reload(); 
+        window.loginWithGoogle = async () => {
+            try { await signInWithPopup(auth, provider); } 
+            catch(e) { alert("Google Sign-In failed. Ensure your domain is authorized in Firebase Console."); }
         };
 
-        window.localLogout = async () => {
-            if (currentSessionId) {
-                try { await deleteDoc(doc(db, "sessions", currentSessionId)); } catch(e) {}
-            }
-            localStorage.removeItem('tbo_active_session');
+        window.openAdminPin = () => {
+            document.getElementById('login-main').style.display='none';
+            document.getElementById('admin-pin-area').style.display='block';
+        };
+
+        window.attemptAdminLogin = () => {
+            if (document.getElementById('admin-pin').value === adminPass) {
+                isAdmin = true;
+                loggedInUser = "Admin";
+                show('screen-admin');
+            } else alert("Invalid Pin");
+        };
+
+        window.triggerSignOut = async () => {
+            if (auth.currentUser) await deleteDoc(doc(db, "sessions", auth.currentUser.uid));
+            await signOut(auth);
             location.reload();
         };
 
-        // --- SYNC DATA ---
-        function init() {
+        // 2. DATA SYNC
+        function sync() {
             onSnapshot(collection(db, "inventory"), (s) => { inv = s.docs.map(d => ({id: d.id, ...d.data()})); renderInv(); });
-            onSnapshot(collection(db, "users"), (s) => { users = s.docs.map(d => ({id: d.id, ...d.data()})); renderTeam(); });
             onSnapshot(collection(db, "sessions"), (s) => { sessions = s.docs.map(d => ({id: d.id, ...d.data()})); renderSessions(); });
             onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(200)), (s) => { logs = s.docs.map(d => d.data()); renderLogs(); });
-            onSnapshot(doc(db, "settings", "config"), (d) => { if(d.exists()) adminPass = d.data().pass; });
+            onSnapshot(doc(db, "settings", "appConfig"), (d) => { 
+                if(d.exists()) {
+                    const data = d.data();
+                    adminPass = data.pass || 'admin123';
+                    config = data.emailConfig || {};
+                    if (config.publicKey) emailjs.init(config.publicKey);
+                    fillSettingsUI();
+                }
+            });
         }
 
-        // --- UI HANDLERS ---
-        function renderSessions() {
-            document.getElementById('session-list').innerHTML = sessions.map(s => `
-                <div class="list-item">
-                    <div><strong>${s.user}</strong><br><small>${new Date(s.time).toLocaleString()}</small></div>
-                    <button class="btn btn-d" onclick="killSession('${s.id}')">End Session</button>
-                </div>
-            `).join('') || '<p>No online users</p>';
-        }
-
-        window.killSession = async (id) => {
-            if(confirm("Force this device to log out?")) await deleteDoc(doc(db, "sessions", id));
-        };
-
+        // 3. ACTION LOGIC
         window.submitEntry = async () => {
             const itemName = document.getElementById('user-item-sel').value;
             const type = document.getElementById('user-type').value;
@@ -248,57 +240,95 @@
             const notes = document.getElementById('user-notes').value.trim();
             const item = inv.find(i => i.name === itemName);
 
-            if(!notes) return alert("Note is mandatory");
-            if(type === 'OUT' && qty > item.stock) return alert("Insufficient Stock");
+            if (!notes) return alert("Purpose is mandatory");
+            if (type === 'OUT' && qty > item.stock) return alert("Insufficient Stock");
 
-            const ns = type === 'IN' ? item.stock + qty : item.stock - qty;
-            await updateDoc(doc(db, "inventory", item.id), { stock: ns });
+            const nextQty = type === 'IN' ? item.stock + qty : item.stock - qty;
+            
+            await updateDoc(doc(db, "inventory", item.id), { stock: nextQty });
             await addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: itemName, type, qty, user: loggedInUser, notes });
+
+            // AUTOMATED EMAIL ALERT (35% Threshold)
+            const threshold = item.initial * 0.35;
+            if (type === 'OUT' && nextQty <= threshold && config.serviceId) {
+                emailjs.send(config.serviceId, config.templateId, {
+                    item_name: itemName,
+                    current_stock: nextQty,
+                    to_email: config.adminEmail
+                }).then(() => console.log("Low Stock Email Sent")).catch(e => console.error(e));
+            }
+
             alert("Entry Saved!");
             document.getElementById('user-notes').value = "";
         };
 
+        // UI HELPERS
+        function renderSessions() {
+            document.getElementById('session-list').innerHTML = sessions.map(s => `
+                <div class="list-item">
+                    <div><strong>${s.name}</strong><br><small>${s.email}</small></div>
+                    <button class="btn btn-d" onclick="killSession('${s.id}')">End Session</button>
+                </div>
+            `).join('') || '<p>No team members online</p>';
+        }
+
+        window.killSession = async (id) => { if(confirm("Kick this user?")) await deleteDoc(doc(db, "sessions", id)); };
+
         window.showStock = () => {
             const i = inv.find(x => x.name === document.getElementById('user-item-sel').value);
-            document.getElementById('stock-info').textContent = i ? `Current Stock: ${i.stock}` : "--";
+            document.getElementById('stock-info').textContent = i ? `Available: ${i.stock}` : "--";
         };
 
-        // UI Boilerplate
-        window.openAuth = (m) => { currentMode = m; document.getElementById('login-main').style.display='none'; document.getElementById('auth-form').style.display='block'; document.getElementById('user-fields').style.display = m === 'user' ? 'block' : 'none'; };
-        window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
+        window.saveSettings = async () => {
+            const emailConfig = {
+                publicKey: document.getElementById('set-ejs-key').value,
+                serviceId: document.getElementById('set-ejs-svc').value,
+                templateId: document.getElementById('set-ejs-tpl').value,
+                adminEmail: document.getElementById('set-admin-email').value
+            };
+            await setDoc(doc(db, "settings", "appConfig"), { emailConfig }, { merge: true });
+            alert("Email Config Saved");
+        };
+
+        window.updateAdminPass = async () => {
+            await setDoc(doc(db, "settings", "appConfig"), { pass: document.getElementById('set-admin-pass').value }, { merge: true });
+            alert("Admin Pin Updated");
+        };
+
+        // Boilerplate
         function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
         window.exportCSV = () => {
             let csv = "Time,Item,Type,Qty,User,Notes\n";
             logs.forEach(l => csv += `${new Date(l.time).toLocaleString().replace(',','')},${l.item},${l.type},${l.qty},${l.user},"${l.notes}"\n`);
             const blob = new Blob([csv], {type: 'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'History_Export.csv'; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'History.csv'; a.click();
         };
         window.addItem = async () => { const n = document.getElementById('new-item-name').value; const s = parseInt(document.getElementById('new-item-stock').value) || 0; await addDoc(collection(db, "inventory"), { name: n, stock: s, initial: s || 1 }); };
-        window.addUser = async () => { const n = document.getElementById('new-user-name').value; const p = document.getElementById('new-user-pass').value; if(n && p) await addDoc(collection(db, "users"), { name: n, pass: p }); };
-        
+        function fillSettingsUI() {
+            document.getElementById('set-ejs-key').value = config.publicKey || '';
+            document.getElementById('set-ejs-svc').value = config.serviceId || '';
+            document.getElementById('set-ejs-tpl').value = config.templateId || '';
+            document.getElementById('set-admin-email').value = config.adminEmail || '';
+        }
         function renderInv() {
             document.getElementById('stat-units').textContent = inv.reduce((a,b)=>a+b.stock,0);
             document.getElementById('stat-items').textContent = inv.length;
             document.getElementById('stat-low').textContent = inv.filter(i => (i.stock/i.initial) < 0.35).length;
             document.getElementById('dash-table').innerHTML = inv.map(i => `<tr><td>${i.name}</td><td>${i.stock}</td><td>
-                <button class="btn btn-s" onclick="updateStock('${i.id}',${i.stock},1,'IN')">+</button>
-                <button class="btn btn-d" onclick="updateStock('${i.id}',${i.stock},1,'OUT')">−</button>
+                <button class="btn btn-s" onclick="adminQuickUpdate('${i.id}',${i.stock},1,'IN')">+</button>
+                <button class="btn btn-d" onclick="adminQuickUpdate('${i.id}',${i.stock},1,'OUT')">−</button>
             </td></tr>`).join('');
+            document.getElementById('manage-table').innerHTML = `<thead><tr><th>Name</th><th>Action</th></tr></thead><tbody>${inv.map(i => `<tr><td>${i.name}</td><td><button class="btn btn-d" onclick="deleteDoc(doc(db,'inventory','${i.id}'))">Delete</button></td></tr>`).join('')}</tbody>`;
             document.getElementById('user-item-sel').innerHTML = inv.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
             showStock();
         }
-        window.updateStock = async (id, cur, chg, typ) => {
-            const ns = typ === 'IN' ? cur + chg : Math.max(0, cur - chg);
-            await updateDoc(doc(db, "inventory", id), { stock: ns });
-        }
+        window.adminQuickUpdate = async (id, cur, chg, typ) => {
+            await updateDoc(doc(db, "inventory", id), { stock: typ === 'IN' ? cur + chg : Math.max(0, cur - chg) });
+        };
         function renderLogs() { document.getElementById('log-table').innerHTML = logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td><strong>${l.type}</strong></td><td>${l.qty}</td><td>${l.user}</td><td>${l.notes}</td></tr>`).join(''); }
-        function renderTeam() { 
-            document.getElementById('team-list').innerHTML = users.map(u => `<div class="list-item"><span>${u.name}</span><button class="btn btn-d" onclick="deleteDoc(doc(db,'users','${u.id}'))">Delete Member</button></div>`).join('');
-            document.getElementById('login-name-select').innerHTML = users.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
-        }
 
-        init();
-        checkSession();
+        sync();
     </script>
 </body>
 </html>
