@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Inventory Pro | Sync</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet">
-    <!-- EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
     <style>
@@ -108,9 +107,13 @@
             </div>
 
             <div id="tab-settings" class="tab-content" style="display:none">
+                <div class="stat-card" style="margin-bottom: 1rem;">
+                    <h3>Change Admin Password</h3>
+                    <label>New Password</label><input type="password" id="set-admin-pass">
+                    <button class="btn btn-p" onclick="saveAdminPassword()">Update Password</button>
+                </div>
                 <div class="stat-card">
                     <h3>EmailJS Configuration</h3>
-                    <p style="font-size: 12px; color: gray; margin-bottom: 15px;">Configure this to receive alerts when stock falls below 35%.</p>
                     <label>Public Key</label><input type="text" id="set-ejs-key">
                     <label>Service ID</label><input type="text" id="set-ejs-svc">
                     <label>Template ID</label><input type="text" id="set-ejs-tpl">
@@ -151,34 +154,34 @@
         const db = getFirestore(app);
 
         let inventory = [], logs = [], users = [], config = {};
-        let currentMode = '', loggedInUser = '';
-
-        // SEED DATA
-        const initialInventory = [
-            {name:"YAS Island Mugs",stock:21},{name:"Bahrain Diaries",stock:46},
-            {name:"DC Diaries",stock:122},{name:"Abu Dhabi Diaries",stock:324},
-            {name:"Qatar Diaries",stock:88},{name:"Regent Seven Seas Diaries",stock:14},
-            {name:"Rail Europe Brochures",stock:5},{name:"TBO Card Holders",stock:63},
-            {name:"Travel Bytes Card Holders",stock:270},{name:"TBO Coasters",stock:29},
-            {name:"Qatar Coasters",stock:405},{name:"TBO Magnets",stock:65},
-            {name:"TBO Candles",stock:71},{name:"TBO Big Bags",stock:292},
-            {name:"QR Codes",stock:381},{name:"Macao Bottle",stock:46},
-            {name:"TBO Bottle",stock:100},{name:"Saudi Bottle",stock:8}
-        ];
+        let currentMode = '', loggedInUser = '', cloudAdminPass = 'admin123';
 
         async function initRealtime() {
-            // Check for empty DB and seed
+            // Check for initial seed
             const invCheck = await getDocs(collection(db, "inventory"));
             if (invCheck.empty) {
+                const initialInventory = [{name:"Bahrain Diaries",stock:150}];
                 for (let item of initialInventory) {
                     await addDoc(collection(db, "inventory"), { ...item, initial: item.stock || 1 });
                 }
             }
 
+            // Real-time Inventory Listener
             onSnapshot(collection(db, "inventory"), (snap) => {
                 inventory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 updateUI();
                 document.getElementById('loading-overlay').style.display = 'none';
+            });
+
+            // Real-time Settings/Password Listener
+            onSnapshot(doc(db, "settings", "appConfig"), (d) => {
+                if (d.exists()) {
+                    const data = d.data();
+                    cloudAdminPass = data.adminPassword || 'admin123';
+                    config = data.emailConfig || {};
+                    if(config.publicKey) emailjs.init(config.publicKey);
+                    fillSettingsUI();
+                }
             });
 
             onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(50)), (snap) => {
@@ -190,17 +193,9 @@
                 users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderTeam();
             });
-
-            onSnapshot(doc(db, "settings", "emailConfig"), (doc) => {
-                if (doc.exists()) {
-                    config = doc.data();
-                    if(config.publicKey) emailjs.init(config.publicKey);
-                    fillSettingsUI();
-                }
-            });
         }
 
-        // UPDATED STOCK LOGIC WITH EMAIL ALERT
+        // STOCK UPDATE & DASHBOARD RECALCULATION
         window.updateStock = async (id, name, currentStock, change, type, initial) => {
             let newQty;
             if (type === 'IN') newQty = currentStock + change;
@@ -213,31 +208,41 @@
                 item: name, type, qty: change, user: loggedInUser || 'Admin'
             });
 
-            // CHECK FOR 35% ALERT
+            // Email Alert Logic (35%)
             const threshold = initial * 0.35;
             if (type === 'OUT' && newQty <= threshold && config.serviceId) {
-                sendEmailAlert(name, newQty, threshold);
+                emailjs.send(config.serviceId, config.templateId, {
+                    item_name: name, current_stock: newQty, threshold: Math.round(threshold), to_email: config.adminEmail
+                }).catch(e => console.error(e));
             }
         };
 
-        function sendEmailAlert(name, qty, threshold) {
-            emailjs.send(config.serviceId, config.templateId, {
-                item_name: name,
-                current_stock: qty,
-                threshold: Math.round(threshold),
-                to_email: config.adminEmail
-            }).then(() => console.log("Alert Sent")).catch(err => console.log(err));
-        }
+        // CUSTOM DELETE FUNCTION
+        window.handleDeleteItem = async (id, name) => {
+            if (confirm(`Are you sure you want to permanently delete "${name}" from the database?`)) {
+                await deleteDoc(doc(db, "inventory", id));
+                alert("Deleted successfully");
+            }
+        };
+
+        // PASSWORD MANAGEMENT
+        window.saveAdminPassword = async () => {
+            const newPass = document.getElementById('set-admin-pass').value;
+            if (newPass.length < 4) return alert("Password too short");
+            await setDoc(doc(db, "settings", "appConfig"), { adminPassword: newPass }, { merge: true });
+            alert("Admin password updated successfully");
+            document.getElementById('set-admin-pass').value = '';
+        };
 
         window.saveSettings = async () => {
-            const data = {
+            const emailConfig = {
                 publicKey: document.getElementById('set-ejs-key').value,
                 serviceId: document.getElementById('set-ejs-svc').value,
                 templateId: document.getElementById('set-ejs-tpl').value,
                 adminEmail: document.getElementById('set-admin-email').value
             };
-            await setDoc(doc(db, "settings", "emailConfig"), data);
-            alert("Settings Saved");
+            await setDoc(doc(db, "settings", "appConfig"), { emailConfig }, { merge: true });
+            alert("Email settings saved");
         };
 
         function fillSettingsUI() {
@@ -247,70 +252,63 @@
             document.getElementById('set-admin-email').value = config.adminEmail || '';
         }
 
-        // REST OF THE BOILERPLATE
-        window.toggleAuthArea = (mode) => {
-            currentMode = mode;
-            document.getElementById('login-main').style.display = 'none';
-            document.getElementById('auth-area').style.display = 'block';
-            document.getElementById('user-name-field').style.display = mode === 'user' ? 'block' : 'none';
-        };
-        window.attemptLogin = () => {
-            const pass = document.getElementById('login-pass').value;
-            if (currentMode === 'admin') {
-                if (pass === 'admin123') showScreen('screen-admin'); else alert("Error");
-            } else {
-                const name = document.getElementById('login-name').value.trim();
-                const user = users.find(u => u.name.toLowerCase() === name.toLowerCase() && u.pass === pass);
-                if (user) { loggedInUser = user.name; showScreen('screen-user'); } else alert("Error");
-            }
-        };
-        window.logout = () => location.reload();
-        window.handleAddItem = async () => {
-            const name = document.getElementById('new-item-name').value;
-            const stock = parseInt(document.getElementById('new-item-stock').value) || 0;
-            await addDoc(collection(db, "inventory"), { name, stock, initial: stock || 1 });
-        };
-        window.handleUserEntry = async () => {
-            const itemName = document.getElementById('entry-item').value;
-            const type = document.getElementById('entry-type').value;
-            const qty = parseInt(document.getElementById('entry-qty').value);
-            const item = inventory.find(i => i.name === itemName);
-            await updateStock(item.id, item.name, item.stock, qty, type, item.initial);
-            alert("Done");
-        };
-        window.handleAddUser = async () => {
-            const name = document.getElementById('new-user-name').value, pass = document.getElementById('new-user-pass').value;
-            await addDoc(collection(db, "users"), { name, pass });
-        };
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
-        window.switchTab = (tab) => {
-            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tab).style.display = 'block';
-            event.target.classList.add('active');
-        };
+        // UI RENDERING
         function updateUI() {
-            const totalUnits = inventory.reduce((acc, curr) => acc + curr.stock, 0);
-            const lowCount = inventory.filter(i => (i.stock / i.initial) < 0.35).length;
+            // Recalculate Stats for Dashboard
+            const totalUnits = inventory.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+            const lowCount = inventory.filter(i => (i.stock / (i.initial || 1)) < 0.35).length;
+            
             document.getElementById('stat-units').textContent = totalUnits;
             document.getElementById('stat-items').textContent = inventory.length;
             document.getElementById('stat-low').textContent = lowCount;
+
+            // Dashboard Table
             document.getElementById('dash-table').innerHTML = inventory.map(i => {
-                const pct = (i.stock / i.initial) * 100;
+                const pct = (i.stock / (i.initial || 1)) * 100;
                 const status = i.stock === 0 ? 'Out' : pct < 35 ? 'Low' : 'OK';
                 return `<tr><td><strong>${i.name}</strong></td><td>${i.stock} <span class="badge badge-${status.toLowerCase()}">${status}</span></td><td>
                     <button class="btn btn-s" onclick="updateStock('${i.id}','${i.name}', ${i.stock}, 1, 'IN', ${i.initial})">+</button>
                     <button class="btn btn-d" onclick="updateStock('${i.id}','${i.name}', ${i.stock}, 1, 'OUT', ${i.initial})">−</button>
                 </td></tr>`;
             }).join('');
-            document.getElementById('manage-table').innerHTML = inventory.map(i => `<tr><td>${i.name}</td><td><button class="btn btn-d" onclick="deleteDoc(doc(db,'inventory','${i.id}'))">Delete</button></td></tr>`).join('');
+
+            // Inventory Manage Table (Custom Deletion)
+            document.getElementById('manage-table').innerHTML = `
+                <thead><tr><th>Item Name</th><th>Initial Stock</th><th>Action</th></tr></thead>
+                <tbody>${inventory.map(i => `<tr><td>${i.name}</td><td>${i.initial}</td><td><button class="btn btn-d" onclick="handleDeleteItem('${i.id}','${i.name}')">Delete</button></td></tr>`).join('')}</tbody>
+            `;
+            
             document.getElementById('entry-item').innerHTML = inventory.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
         }
+
+        // AUTH & NAVIGATION
+        window.toggleAuthArea = (m) => { currentMode = m; document.getElementById('login-main').style.display = 'none'; document.getElementById('auth-area').style.display = 'block'; document.getElementById('user-name-field').style.display = m==='user'?'block':'none'; };
+        window.attemptLogin = () => {
+            const p = document.getElementById('login-pass').value;
+            if (currentMode === 'admin') {
+                if (p === cloudAdminPass) showScreen('screen-admin'); else alert("Incorrect Admin Password");
+            } else {
+                const n = document.getElementById('login-name').value.trim();
+                const u = users.find(x => x.name.toLowerCase() === n.toLowerCase() && x.pass === p);
+                if (u) { loggedInUser = u.name; document.getElementById('user-greeting').textContent = "Hi, "+u.name; showScreen('screen-user'); } else alert("User Error");
+            }
+        };
+        window.logout = () => location.reload();
+        window.handleAddItem = async () => {
+            const n = document.getElementById('new-item-name').value;
+            const s = parseInt(document.getElementById('new-item-stock').value) || 0;
+            if (n) await addDoc(collection(db, "inventory"), { name: n, stock: s, initial: s || 1 });
+            document.getElementById('new-item-name').value = ''; document.getElementById('new-item-stock').value = '';
+        };
+        window.handleAddUser = async () => {
+            const n = document.getElementById('new-user-name').value, p = document.getElementById('new-user-pass').value;
+            if (n && p) await addDoc(collection(db, "users"), { name: n, pass: p });
+            document.getElementById('new-user-name').value = ''; document.getElementById('new-user-pass').value = '';
+        };
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-' + t).style.display = 'block'; event.target.classList.add('active'); };
         function renderLogs() { document.getElementById('log-table').innerHTML = logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.type}</td><td>${l.qty}</td><td>${l.user}</td></tr>`).join(''); }
-        function renderTeam() { document.getElementById('team-list').innerHTML = users.map(u => `<div class="nav"><span>${u.name}</span><button class="btn btn-d" onclick="deleteDoc(doc(db,'users','${u.id}'))">X</button></div>`).join(''); }
+        function renderTeam() { document.getElementById('team-list').innerHTML = users.map(u => `<div class="nav" style="background:#fff; padding:10px; border-radius:8px; margin-bottom:5px;"><span>${u.name}</span><button class="btn btn-d" onclick="deleteDoc(doc(db,'users','${u.id}'))">Remove</button></div>`).join(''); }
 
         initRealtime();
     </script>
