@@ -48,13 +48,13 @@
 </head>
 <body>
 
-    <div id="loading-overlay">Tbo Academy | Database Connecting...</div>
+    <div id="loading-overlay">Tbo Academy | Synchronizing...</div>
 
     <div class="header-logo">
-        <img id="tbo-logo" src="https://www.tboacademy.com/images/black-option-1.png" alt="Tbo Academy" onerror="this.style.display='none'">
+        <img id="tbo-logo" src="https://www.tboacademy.com/images/black-option-1.png" alt="Tbo Academy">
     </div>
 
-    <!-- LOGIN -->
+    <!-- 1. LOGIN -->
     <div id="screen-login" class="screen active">
         <div class="auth-card">
             <h1>Inventory Database</h1>
@@ -66,7 +66,7 @@
                 </button>
                 <button class="btn btn-p" onclick="showEmailForm()">Email & Password</button>
                 <hr style="margin: 20px 0; border:0; border-top: 1px solid #eee;">
-                <button class="btn btn-s" onclick="showAdminPin()">Admin Access</button>
+                <button class="btn btn-s" onclick="showAdminPin()">Admin Dashboard</button>
             </div>
             <div id="email-area" style="display:none;">
                 <input type="email" id="auth-email" placeholder="Email"><input type="password" id="auth-pass" placeholder="Password">
@@ -75,14 +75,14 @@
                 <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
             </div>
             <div id="admin-area" style="display:none;">
-                <input type="password" id="admin-pin" placeholder="Admin Secret Pin">
-                <button class="btn btn-p" onclick="tryAdminLogin()">Open Dashboard</button>
+                <input type="password" id="admin-pin" placeholder="PIN">
+                <button class="btn btn-p" onclick="tryAdminLogin()">Open Panel</button>
                 <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
             </div>
         </div>
     </div>
 
-    <!-- PENDING -->
+    <!-- PENDING APPROVAL -->
     <div id="screen-pending" class="screen">
         <div class="auth-card"><h2>Access Restricted</h2><p>Wait for Admin approval.</p><button class="btn btn-s" onclick="signOutUser()">Logout</button></div>
     </div>
@@ -119,7 +119,7 @@
                 <h3 style="margin-top:20px">Authorized Team</h3><table id="approved-table"></table>
             </div>
             <div id="tab-inv" class="tab-content" style="display:none">
-                <div class="card"><h3>Add Item</h3><input type="text" id="add-name" placeholder="Name"><input type="number" id="add-qty" placeholder="Opening Total Stock"><button class="btn btn-p" onclick="adminAddItem()">Create</button></div>
+                <div class="card"><h3>New Item</h3><input type="text" id="add-name" placeholder="Name"><input type="number" id="add-qty" placeholder="Opening Stock"><button class="btn btn-p" onclick="adminAddItem()">Create</button></div>
                 <table id="admin-inv-list"></table>
             </div>
             <div id="tab-logs" class="tab-content" style="display:none">
@@ -128,18 +128,18 @@
             </div>
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
-                    <h3>Notification Recipients</h3>
+                    <h3>Alert Recipients</h3>
                     <label>To: Email 1</label><input type="email" id="set-e1">
                     <label>To: Email 2</label><input type="email" id="set-e2">
                     <label>Cc: Email</label><input type="email" id="set-ecc">
-                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+                    <hr style="margin:20px 0;">
                     <h3>EmailJS Configuration</h3>
                     <label>Public Key</label><input type="text" id="set-key">
                     <label>Service ID</label><input type="text" id="set-svc">
                     <label>Template ID</label><input type="text" id="set-tpl">
-                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <label>Admin Access PIN</label><input type="password" id="set-pin">
-                    <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
+                    <hr style="margin:20px 0;">
+                    <label>Admin PIN</label><input type="password" id="set-pin">
+                    <button class="btn btn-p" onclick="saveAdminSet()">Save Settings</button>
                 </div>
             </div>
         </div>
@@ -175,7 +175,7 @@
                 onSnapshot(uRef, snap => {
                     if (isAdmin) return;
                     if (snap.data()?.approved) { showScreen('screen-user'); document.getElementById('user-name-tag').textContent = "Hello, " + snap.data().name; initSync(); }
-                    else { showScreen('screen-pending'); }
+                    else showScreen('screen-pending');
                 });
             } else if (!isAdmin) showScreen('screen-login');
             document.getElementById('loading-overlay').style.display = 'none';
@@ -191,8 +191,12 @@
 
         window.showAdminPin = () => { document.getElementById('auth-main').style.display='none'; document.getElementById('admin-area').style.display='block'; };
         window.tryAdminLogin = () => {
-            if (document.getElementById('admin-pin').value === adminPin) { isAdmin = true; showScreen('screen-admin'); initSync(); onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => d.data()); renderUserTables(); }); onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); }
-            else alert("Invalid PIN");
+            if (document.getElementById('admin-pin').value === adminPin) { 
+                isAdmin = true; showScreen('screen-admin'); initSync(); 
+                onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => d.data()); renderUserTables(); }); 
+                onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); 
+            }
+            else alert("Wrong Pin");
         };
 
         function initSync() {
@@ -203,7 +207,6 @@
             });
         }
 
-        // --- INTEGRATED UPDATED CORE LOGIC ---
         window.submitUserEntry = async () => {
             const itemName = String(document.getElementById('user-items').value);
             const type = document.getElementById('user-type').value;
@@ -217,7 +220,6 @@
             const newQty = type === 'IN' ? item.stock + qty : item.stock - qty;
             const percentage = (newQty / (item.initial || 1)) * 100;
 
-            // 1. Update Database
             await updateDoc(doc(db, "inventory", item.id), { stock: newQty });
             await addDoc(collection(db, "logs"), { 
                 time: new Date().toISOString(), 
@@ -225,45 +227,35 @@
                 type, 
                 qty, 
                 user: auth.currentUser.email, 
-                note 
+                note // Corrected: variable is note
             });
 
-            // 2. Sense 35% Logic
             if (type === 'OUT' && percentage <= 35) {
                 if (settings.ejsSvc && settings.ejsTpl) {
-                    
-                    // Build the formatted list for the grey box
                     const lowItems = inv.filter(i => {
                         const s = (i.name === itemName) ? newQty : i.stock;
                         return (s / (i.initial || 1)) <= 0.35;
                     });
-
-                    const formattedList = lowItems.map(i => {
-                        const current = (i.name === itemName) ? newQty : i.stock;
-                        const initial = i.initial || 1;
-                        const pct = Math.round((current / initial) * 100);
-                        return `• ${i.name}\n  Stock: ${current} / ${initial} units (${pct}% remaining)`;
+                    const listString = lowItems.map(i => {
+                        const s = (i.name === itemName) ? newQty : i.stock;
+                        const baseline = i.initial || 1;
+                        const p = Math.round((s / baseline) * 100);
+                        return `• ${i.name}\n  Stock: ${s} / ${baseline} units (${p}% remaining)`;
                     }).join('\n\n');
-
-                    // Handle Recipients
                     let toEmails = [];
                     if(settings.e1) toEmails.push(settings.e1);
                     if(settings.e2) toEmails.push(settings.e2);
-
-                    // Send to EmailJS
                     emailjs.send(settings.ejsSvc, settings.ejsTpl, {
-                        items_list: formattedList,             // Matches {{items_list}}
-                        total_alerts: lowItems.length,         // Matches {{total_alerts}}
-                        sent_at: new Date().toLocaleString(),   // Matches {{sent_at}}
-                        to_email: toEmails.join(', '),         // To: field
-                        cc_email: settings.ecc || ''           // Cc: field
-                    }).then(() => console.log("Email sent successfully"));
+                        items_list: listString,
+                        total_alerts: lowItems.length,
+                        sent_at: new Date().toLocaleString(),
+                        to_email: toEmails.join(', '),
+                        cc_email: settings.ecc || ''
+                    });
                 }
             }
-
-            alert("Success! Stock updated.");
+            alert("Success!");
             document.getElementById('user-notes').value = "";
-            document.getElementById('user-qty').value = "1";
         };
 
         window.updatePreview = () => {
@@ -276,9 +268,39 @@
             }
         };
 
+        // --- UPDATED RENDER LOGS TO INCLUDE PURPOSE ---
+        function renderLogs() { 
+            const list = document.getElementById('admin-log-list');
+            if(list) {
+                list.innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Type</th><th>Qty</th><th>User</th><th>Purpose</th></tr></thead><tbody>` + 
+                logs.map(l => `<tr>
+                    <td>${new Date(l.time).toLocaleTimeString()}</td>
+                    <td>${l.item}</td>
+                    <td><strong>${l.type}</strong></td>
+                    <td>${l.qty}</td>
+                    <td><small>${l.user}</small></td>
+                    <td style="color:var(--primary); font-style:italic;">${l.note || 'N/A'}</td>
+                </tr>`).join('') + `</tbody>`; 
+            }
+        }
+
+        // --- UPDATED EXCEL DOWNLOAD TO INCLUDE PURPOSE ---
+        window.downloadCSV = () => { 
+            let csv = "Time,Item,Type,Qty,User,Purpose\n"; 
+            logs.forEach(l => {
+                csv += `${new Date(l.time).toLocaleString().replace(',','')},${l.item},${l.type},${l.qty},${l.user},"${l.note || 'N/A'}"\n`;
+            });
+            const b = new Blob([csv], {type:'text/csv'}); 
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(b); 
+            a.download = 'History_Inventory.csv'; 
+            a.click(); 
+        };
+
+        // UI Helpers
         function renderAdminInv() {
             if (document.getElementById('admin-dash-list')) {
-                document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Level (%)</th><th>Status</th></tr></thead><tbody>` + 
+                document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Units</th><th>Level (%)</th><th>Status</th></tr></thead><tbody>` + 
                 inv.map(i => {
                     const pct = Math.round((i.stock/(i.initial||1))*100);
                     const badge = i.stock === 0 ? 'out' : pct <= 35 ? 'low' : 'ok';
@@ -293,7 +315,7 @@
         function renderUserTables() {
             const p = users.filter(u => !u.approved), a = users.filter(u => u.approved);
             const b = document.getElementById('req-badge');
-            if(b) { if(p.length > 0) { b.textContent = p.length; b.style.display = 'inline'; } else { b.style.display = 'none'; } }
+            if(b) { if(p.length > 0) { b.textContent = p.length; b.style.display = 'inline'; } else b.style.display = 'none'; }
             document.getElementById('pending-table').innerHTML = p.map(u => `<tr><td>${u.name}</td><td><button class="btn-approve" onclick="toggleAccess('${u.uid}', true)">Approve</button></td></tr>`).join('');
             document.getElementById('approved-table').innerHTML = a.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.uid}', false)">Revoke</button></td></tr>`).join('');
         }
@@ -303,12 +325,9 @@
                 const data = d.data(); adminPin = data.pin || 'admin123'; settings = data;
                 if(data.ejsKey) emailjs.init(data.ejsKey);
                 if(document.getElementById('set-pin')) {
-                    document.getElementById('set-pin').value = data.pin || '';
-                    document.getElementById('set-e1').value = data.e1 || '';
-                    document.getElementById('set-e2').value = data.e2 || '';
-                    document.getElementById('set-ecc').value = data.ecc || '';
-                    document.getElementById('set-key').value = data.ejsKey || '';
-                    document.getElementById('set-svc').value = data.ejsSvc || '';
+                    document.getElementById('set-pin').value = data.pin || ''; document.getElementById('set-e1').value = data.e1 || '';
+                    document.getElementById('set-e2').value = data.e2 || ''; document.getElementById('set-ecc').value = data.ecc || '';
+                    document.getElementById('set-key').value = data.ejsKey || ''; document.getElementById('set-svc').value = data.ejsSvc || '';
                     document.getElementById('set-tpl').value = data.ejsTpl || '';
                 }
             }
@@ -325,8 +344,6 @@
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); if(event) event.target.classList.add('active'); };
         window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value) || 0; if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q || 1 }); document.getElementById('add-name').value=''; document.getElementById('add-qty').value=''; };
-        function renderLogs() { if(document.getElementById('admin-log-list')) document.getElementById('admin-log-list').innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Type</th><th>User</th></tr></thead><tbody>` + logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.type}</td><td><small>${l.user}</small></td></tr>`).join('') + `</tbody>`; }
-        window.downloadCSV = () => { let csv = "Time,Item,Type,User\n"; logs.forEach(l => csv += `${new Date(l.time).toLocaleString().replace(',','')},${l.item},${l.type},${l.user}\n`); const b = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'Inventory_Log.csv'; a.click(); };
     </script>
 </body>
 </html>
