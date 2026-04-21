@@ -1,3 +1,5 @@
+--- START OF FILE text/plain ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -235,7 +237,7 @@
             if(d.exists()) {
                 settings = d.data();
                 adminPin = settings.pin ? settings.pin.toString() : 'admin123';
-                if(settings.ejsKey) emailjs.init({ publicKey: settings.ejsKey });
+                if(settings.ejsKey) window.emailjs.init({ publicKey: settings.ejsKey });
 
                 const elPin = document.getElementById('set-pin');
                 if(elPin) {
@@ -373,12 +375,12 @@
                 }
 
                 // Step 3: Send ONE combined email if items are low
-                if (itemsToAlert.length > 0 && settings.ejsSvc && settings.ejsTpl) {
+                if (itemsToAlert.length > 0 && settings.ejsSvc && settings.ejsTpl && settings.ejsKey) {
                     const recipients = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ');
-                    emailjs.send(settings.ejsSvc, settings.ejsTpl, {
+                    await window.emailjs.send(settings.ejsSvc, settings.ejsTpl, {
                         items_list: itemsToAlert.join('\n'),
                         to_email: recipients || ADMIN_EMAIL
-                    }).then(() => console.log("Alert Sent"), (err) => console.error("Email Error:", err));
+                    }, { publicKey: settings.ejsKey }).then(() => console.log("Alert Sent"), (err) => console.error("Email Error:", err));
                 }
 
                 alert("Inventory Update Successful!");
