@@ -228,10 +228,9 @@
         const gProvider = new GoogleAuthProvider();
 
         let inv = [], logs = [], users = [], settings = {};
-        let adminPin = 'admin123'; // Loaded from DB
+        let adminPin = 'admin123'; 
         let isAdmin = false;
 
-        // --- 1. SETTINGS SYNC ---
         onSnapshot(doc(db, "settings", "config"), d => {
             if(d.exists()) {
                 settings = d.data();
@@ -251,7 +250,6 @@
             }
         });
 
-        // --- 2. AUTH OBSERVER ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (user.email === ADMIN_EMAIL) { 
@@ -279,7 +277,6 @@
             document.getElementById('loading-overlay').style.display = 'none';
         });
 
-        // --- 3. LOGIN FUNCTIONS ---
         window.loginWithGoogle = () => signInWithPopup(auth, gProvider);
         window.handleEmail = (type) => {
             const e = document.getElementById('auth-email').value, p = document.getElementById('auth-pass').value;
@@ -306,7 +303,6 @@
             }
         };
 
-        // --- 4. CORE DATABASE SYNC ---
         function initSync() {
             onSnapshot(collection(db, "inventory"), s => {
                 inv = s.docs.map(d => ({id: d.id, ...d.data()}));
@@ -315,7 +311,6 @@
             });
         }
 
-        // --- 5. USER BATCH SUBMIT ---
         function renderUserBulkList() {
             const list = document.getElementById('user-bulk-list');
             if(!list) return;
@@ -333,6 +328,7 @@
             document.getElementById(`row-${id}`).classList.toggle('selected');
         };
 
+        // --- FIXED BATCH UPDATE WITH EMAIL LOGIC ---
         window.submitBulkUpdate = async () => {
             const note = document.getElementById('bulk-note').value.trim();
             const date = document.getElementById('bulk-date').value;
@@ -342,7 +338,9 @@
             if(checks.length === 0) return alert("Please select at least one item.");
 
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "Syncing...";
+            btn.disabled = true; btn.innerText = "Processing...";
+
+            let itemsToAlert = [];
 
             try {
                 for(let check of checks) {
@@ -353,11 +351,10 @@
                     if(qty > 0) {
                         if(qty > item.stock) { alert(`Insufficient stock for ${item.name}`); continue; }
                         const newStock = item.stock - qty;
-                        
-                        // Percentage calculation
                         const total = item.initial || item.stock || 1;
                         const pct = (newStock / total) * 100;
 
+                        // Step 1: Update DB
                         await updateDoc(doc(db, "inventory", id), { stock: newStock });
                         await addDoc(collection(db, "logs"), { 
                             time: new Date().toISOString(), 
@@ -368,18 +365,23 @@
                             note: `Event: ${note} | Date: ${date}` 
                         });
                         
-                        // Simplified Email Alert logic - trigger if below 35%
-                        if (pct <= 35 && settings.ejsSvc && settings.ejsTpl) {
-                            const recipients = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ') || ADMIN_EMAIL;
-                            console.log("Sending low stock alert for:", item.name);
-                            emailjs.send(settings.ejsSvc, settings.ejsTpl, {
-                                items_list: `${item.name}: Stock is now ${newStock} units (${Math.round(pct)}%).`,
-                                to_email: recipients
-                            }).then(res => console.log("Email Sent!", res), err => console.error("Email Failed", err));
+                        // Step 2: Track if low for email
+                        if (pct <= 35) {
+                            itemsToAlert.push(`- ${item.name}: ${newStock} left (${Math.round(pct)}%)`);
                         }
                     }
                 }
-                alert("Batch Inventory Update Successful!");
+
+                // Step 3: Send ONE combined email if items are low
+                if (itemsToAlert.length > 0 && settings.ejsSvc && settings.ejsTpl) {
+                    const recipients = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ');
+                    emailjs.send(settings.ejsSvc, settings.ejsTpl, {
+                        items_list: itemsToAlert.join('\n'),
+                        to_email: recipients || ADMIN_EMAIL
+                    }).then(() => console.log("Alert Sent"), (err) => console.error("Email Error:", err));
+                }
+
+                alert("Inventory Update Successful!");
                 location.reload();
             } catch (e) {
                 alert("Error: " + e.message);
@@ -387,7 +389,6 @@
             }
         };
 
-        // --- 6. ADMIN CRUD ACTIONS ---
         window.adminAddItem = async () => {
             const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value) || 0;
             if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q || 1 });
@@ -401,10 +402,7 @@
             const itemRef = doc(db, "inventory", id);
             const snap = await getDoc(itemRef);
             const oldData = snap.data();
-            
-            // If restocking, update the initial baseline
             const newInitial = (s > (oldData.initial || 0)) ? s : (oldData.initial || s);
-            
             await updateDoc(itemRef, { name: n, stock: s, initial: newInitial });
             cancelEdit();
         };
@@ -422,10 +420,8 @@
 
         window.toggleAccess = async (uid, s) => await updateDoc(doc(db, "users_metadata", uid), { approved: s });
 
-        // --- 7. UI RENDERING ---
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
-            
             document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Stock %</th><th>Status</th></tr></thead><tbody>` + 
                 inv.map(i => {
                     const total = i.initial || i.stock || 1;
