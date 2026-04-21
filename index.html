@@ -106,7 +106,7 @@
             <div class="nav"><h2 id="user-name-tag">Hello</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
             
             <div class="card">
-                <h3 style="margin-bottom:15px;">Bulk Inventory Stock-Out</h3>
+                <h3 style="margin-bottom:15px;">Inventory Stock-Out</h3>
                 <p style="font-size: 13px; color: gray; margin-bottom: 15px;">Tick the items you are taking and enter the specific quantity for each.</p>
                 
                 <table>
@@ -125,12 +125,12 @@
 
                 <div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
                     <label>Event Name / Purpose (Mandatory)</label>
-                    <textarea id="bulk-note" placeholder="Example: Sales Training Mumbai - Grand Hyatt"></textarea>
+                    <textarea id="note" placeholder="Example: Sales Training Mumbai - Grand Hyatt"></textarea>
                     
                     <label>Date of Event (Mandatory)</label>
-                    <input type="date" id="bulk-date">
+                    <input type="date" id="date">
 
-                    <button class="btn btn-p" id="submit-btn" onclick="submitBulkUpdate()">Submit Batch Requisition</button>
+                    <button class="btn btn-p" id="submit-btn" onclick="submit()">Submit Batch Requisition</button>
                 </div>
             </div>
         </div>
