@@ -231,12 +231,12 @@
         let adminPin = 'admin123'; // Loaded from DB
         let isAdmin = false;
 
-        // --- 1. SETTINGS SYNC (Syncs PIN and Keys instantly) ---
+        // --- 1. SETTINGS SYNC ---
         onSnapshot(doc(db, "settings", "config"), d => {
             if(d.exists()) {
                 settings = d.data();
                 adminPin = settings.pin ? settings.pin.toString() : 'admin123';
-                if(settings.ejsKey) emailjs.init(settings.ejsKey);
+                if(settings.ejsKey) emailjs.init({ publicKey: settings.ejsKey }); // Fixed v4 Init
 
                 const elPin = document.getElementById('set-pin');
                 if(elPin) {
@@ -363,12 +363,13 @@
                             note: `Event: ${note} | Date: ${date}` 
                         });
                         
-                        // Email Alert logic
+                        // Fixed Email Alert logic
                         const pct = (newStock / (item.initial || 1)) * 100;
-                        if (pct <= 35 && settings.ejsSvc) {
+                        if (pct <= 35 && settings.ejsSvc && settings.ejsTpl) {
+                            const recipients = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ') || ADMIN_EMAIL;
                             emailjs.send(settings.ejsSvc, settings.ejsTpl, {
-                                items_list: `${item.name}: Only ${newStock} left.`,
-                                to_email: settings.e1 || ADMIN_EMAIL
+                                items_list: `${item.name}: Only ${newStock} units left (${Math.round(pct)}%).`,
+                                to_email: recipients
                             });
                         }
                     }
@@ -412,10 +413,11 @@
         // --- 7. UI RENDERING ---
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
-            document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Status</th></tr></thead><tbody>` + 
+            // Updated Table Headers with Stock %
+            document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Stock %</th><th>Status</th></tr></thead><tbody>` + 
                 inv.map(i => {
                     const p = Math.round((i.stock/(i.initial||1))*100);
-                    return `<tr><td>${i.name}</td><td><strong>${i.stock}</strong></td><td><span class="badge badge-${p<=35?'low':'ok'}">${p<=35?'LOW':'OK'}</span></td></tr>`
+                    return `<tr><td>${i.name}</td><td><strong>${i.stock}</strong></td><td>${p}%</td><td><span class="badge badge-${p<=35?'low':'ok'}">${p<=35?'LOW':'OK'}</span></td></tr>`
                 }).join('') + `</tbody>`;
             
             document.getElementById('admin-inv-list').innerHTML = `<thead><tr><th>Item Name</th><th>Action</th></tr></thead><tbody>` + 
