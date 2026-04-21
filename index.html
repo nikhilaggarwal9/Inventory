@@ -236,7 +236,7 @@
             if(d.exists()) {
                 settings = d.data();
                 adminPin = settings.pin ? settings.pin.toString() : 'admin123';
-                if(settings.ejsKey) emailjs.init({ publicKey: settings.ejsKey }); // Fixed v4 Init
+                if(settings.ejsKey) emailjs.init({ publicKey: settings.ejsKey });
 
                 const elPin = document.getElementById('set-pin');
                 if(elPin) {
@@ -353,6 +353,11 @@
                     if(qty > 0) {
                         if(qty > item.stock) { alert(`Insufficient stock for ${item.name}`); continue; }
                         const newStock = item.stock - qty;
+                        
+                        // Percentage calculation
+                        const total = item.initial || item.stock || 1;
+                        const pct = (newStock / total) * 100;
+
                         await updateDoc(doc(db, "inventory", id), { stock: newStock });
                         await addDoc(collection(db, "logs"), { 
                             time: new Date().toISOString(), 
@@ -363,14 +368,14 @@
                             note: `Event: ${note} | Date: ${date}` 
                         });
                         
-                        // Fixed Email Alert logic
-                        const pct = (newStock / (item.initial || 1)) * 100;
+                        // Simplified Email Alert logic - trigger if below 35%
                         if (pct <= 35 && settings.ejsSvc && settings.ejsTpl) {
                             const recipients = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ') || ADMIN_EMAIL;
+                            console.log("Sending low stock alert for:", item.name);
                             emailjs.send(settings.ejsSvc, settings.ejsTpl, {
-                                items_list: `${item.name}: Only ${newStock} units left (${Math.round(pct)}%).`,
+                                items_list: `${item.name}: Stock is now ${newStock} units (${Math.round(pct)}%).`,
                                 to_email: recipients
-                            });
+                            }).then(res => console.log("Email Sent!", res), err => console.error("Email Failed", err));
                         }
                     }
                 }
@@ -393,7 +398,14 @@
         
         window.saveItemUpdate = async () => {
             const id = document.getElementById('edit-id').value, n = document.getElementById('edit-name').value, s = parseInt(document.getElementById('edit-stock').value);
-            await updateDoc(doc(db, "inventory", id), { name: n, stock: s });
+            const itemRef = doc(db, "inventory", id);
+            const snap = await getDoc(itemRef);
+            const oldData = snap.data();
+            
+            // If restocking, update the initial baseline
+            const newInitial = (s > (oldData.initial || 0)) ? s : (oldData.initial || s);
+            
+            await updateDoc(itemRef, { name: n, stock: s, initial: newInitial });
             cancelEdit();
         };
 
@@ -405,7 +417,7 @@
                 ecc: document.getElementById('set-ecc').value, ejsKey: document.getElementById('set-key').value, 
                 ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value 
             });
-            alert("All settings and NEW PIN saved!");
+            alert("Settings saved!");
         };
 
         window.toggleAccess = async (uid, s) => await updateDoc(doc(db, "users_metadata", uid), { approved: s });
@@ -413,11 +425,12 @@
         // --- 7. UI RENDERING ---
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
-            // Updated Table Headers with Stock %
+            
             document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Stock %</th><th>Status</th></tr></thead><tbody>` + 
                 inv.map(i => {
-                    const p = Math.round((i.stock/(i.initial||1))*100);
-                    return `<tr><td>${i.name}</td><td><strong>${i.stock}</strong></td><td>${p}%</td><td><span class="badge badge-${p<=35?'low':'ok'}">${p<=35?'LOW':'OK'}</span></td></tr>`
+                    const total = i.initial || i.stock || 1;
+                    const p = Math.round((i.stock / total) * 100);
+                    return `<tr><td>${i.name}</td><td><strong>${i.stock}</strong></td><td><strong>${p}%</strong></td><td><span class="badge badge-${p<=35?'low':'ok'}">${p<=35?'LOW':'OK'}</span></td></tr>`
                 }).join('') + `</tbody>`;
             
             document.getElementById('admin-inv-list').innerHTML = `<thead><tr><th>Item Name</th><th>Action</th></tr></thead><tbody>` + 
