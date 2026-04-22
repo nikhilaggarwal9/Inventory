@@ -48,12 +48,6 @@
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { background: #f8fafc; color: var(--text-light); font-size: 11px; text-transform: uppercase; }
         
-        .user-table-row.selected { background-color: #f0f7ff; }
-        .qty-input-small { width: 80px !important; padding: 8px !important; margin: 0 !important; text-align: center; border: 1px solid #cbd5e0 !important; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
-        .badge-low { background: #fff5f5; color: var(--danger); }
-        .badge-ok { background: #e6fcf5; color: var(--success); }
-
         #loading-overlay { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; align-items: center; justify-content: center; font-weight: 700; }
     </style>
 </head>
@@ -88,8 +82,8 @@
             <!-- Handshake Area: Set New Password -->
             <div id="setup-pass-area" style="display:none;">
                 <h3 style="margin-bottom:10px">Set Permanent Password</h3>
-                <p style="font-size:12px; color:gray; margin-bottom:15px">You are logging in with a temporary PIN. Please set a secure password for your account.</p>
-                <input type="password" id="new-set-pass" placeholder="Enter New Password (min 6 characters)">
+                <p style="font-size:12px; color:gray; margin-bottom:15px">Logging in with temporary PIN. Set a secure password for your account.</p>
+                <input type="password" id="new-set-pass" placeholder="New Password (min 6 chars)">
                 <button class="btn btn-p" onclick="finalizeAccountSetup()">Save Password & Enter</button>
             </div>
 
@@ -115,20 +109,15 @@
     <div id="screen-user" class="screen">
         <div class="container" style="max-width: 850px;">
             <div class="nav"><h2 id="user-name-tag">Hello</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
-            
             <div class="card">
-                <h3 style="margin-bottom:15px;">Inventory Stock-Out</h3>
+                <h3>Stock Requisition</h3>
                 <table>
-                    <thead>
-                        <tr><th style="width:50px">Select</th><th>Item Name</th><th>Current Stock</th><th style="width:110px">Quantity to Take</th></tr>
-                    </thead>
+                    <thead><tr><th style="width:50px">Select</th><th>Item</th><th>Stock</th><th style="width:110px">Qty to Take</th></tr></thead>
                     <tbody id="user-bulk-list"></tbody>
                 </table>
                 <div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
-                    <label>Event Name / Purpose (Mandatory)</label>
-                    <textarea id="bulk-note" placeholder="Example: Sales Training Mumbai"></textarea>
-                    <label>Date of Event (Mandatory)</label>
-                    <input type="date" id="bulk-date">
+                    <label>Purpose / Event</label><textarea id="bulk-note"></textarea>
+                    <label>Date</label><input type="date" id="bulk-date">
                     <button class="btn btn-p" id="submit-btn" onclick="submitBulkUpdate()">Submit Batch Requisition</button>
                 </div>
             </div>
@@ -152,10 +141,10 @@
             <div id="tab-team" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Register New User</h3>
-                    <p style="font-size:12px; color:gray; margin-bottom:10px;">Provide an email and a 4-digit temporary PIN. The user will be asked to set their own password on their first login.</p>
+                    <p style="font-size:12px; color:gray; margin-bottom:10px;">Give them a 4-digit temporary PIN. They will set their password on first login.</p>
                     <div style="display:flex; gap:10px;">
-                        <input type="email" id="admin-reg-email" placeholder="User Email" style="margin:0">
-                        <input type="text" id="admin-reg-pin" placeholder="Temp PIN (e.g. 1234)" style="margin:0; width:150px">
+                        <input type="email" id="admin-reg-email" placeholder="Email" style="margin:0">
+                        <input type="text" id="admin-reg-pin" placeholder="PIN (e.g. 1234)" style="margin:0; width:150px">
                         <button class="btn btn-p" style="margin:0; width:auto" onclick="adminPreRegisterUser()">Register</button>
                     </div>
                 </div>
@@ -167,26 +156,17 @@
                 <div class="card" id="create-card">
                     <h3>Create New Item</h3>
                     <input type="text" id="add-name" placeholder="Item Name">
-                    <input type="number" id="add-qty" placeholder="Opening Stock Quantity">
+                    <input type="number" id="add-qty" placeholder="Opening Stock">
                     <button class="btn btn-p" onclick="adminAddItem()">Add to Cloud</button>
                 </div>
                 <div class="card" id="update-card" style="display:none; border: 2px solid var(--primary);">
-                    <h3>Edit Existing Item</h3>
-                    <input type="hidden" id="edit-id">
-                    <label>Name</label><input type="text" id="edit-name">
-                    <label>Force Stock Update</label><input type="number" id="edit-stock">
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-p" onclick="saveItemUpdate()">Save Changes</button>
-                        <button class="btn btn-s" onclick="cancelEdit()">Cancel</button>
-                    </div>
+                    <input type="hidden" id="edit-id"><label>Name</label><input type="text" id="edit-name"><label>Stock</label><input type="number" id="edit-stock">
+                    <div style="display: flex; gap: 10px;"><button class="btn btn-p" onclick="saveItemUpdate()">Save</button><button class="btn btn-s" onclick="cancelEdit()">Cancel</button></div>
                 </div>
                 <div class="card"><table id="admin-inv-list"></table></div>
             </div>
 
-            <div id="tab-logs" class="tab-content" style="display:none">
-                <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
-                <div class="card"><table id="admin-log-list"></table></div>
-            </div>
+            <div id="tab-logs" class="tab-content" style="display:none"><div class="card"><table id="admin-log-list"></table></div></div>
 
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
@@ -195,8 +175,12 @@
                     <label>To: Email 2</label><input type="email" id="set-e2">
                     <label>Cc: Email</label><input type="email" id="set-ecc">
                     <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <h3>System Admin PIN</h3>
-                    <input type="text" id="set-pin">
+                    <h3>EmailJS Integration</h3>
+                    <label>Public Key</label><input type="text" id="set-key">
+                    <label>Service ID</label><input type="text" id="set-svc">
+                    <label>Template ID</label><input type="text" id="set-tpl">
+                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+                    <label>System Admin PIN</label><input type="text" id="set-pin">
                     <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
                 </div>
             </div>
@@ -217,213 +201,129 @@
             appId: "1:823946326055:web:29ede9f4dbc33b02d2de02"
         };
 
-        const ADMIN_EMAIL = "nikhilmfd24@gmail.com";
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const gProvider = new GoogleAuthProvider();
+        const ADMIN_EMAIL = "nikhilmfd24@gmail.com";
 
         let inv = [], logs = [], users = [], settings = {}, setupEmail = "";
-        let adminPin = 'admin123'; 
-        let isAdmin = false;
+        let adminPin = 'admin123';
 
+        // Settings Sync
         onSnapshot(doc(db, "settings", "config"), d => {
             if(d.exists()) {
                 settings = d.data();
                 adminPin = settings.pin ? settings.pin.toString() : 'admin123';
                 if(settings.ejsKey) window.emailjs.init({ publicKey: settings.ejsKey });
-                const elPin = document.getElementById('set-pin');
-                if(elPin) elPin.value = adminPin;
+                
+                if(document.getElementById('set-pin')) {
+                    document.getElementById('set-pin').value = adminPin;
+                    document.getElementById('set-e1').value = settings.e1 || '';
+                    document.getElementById('set-e2').value = settings.e2 || '';
+                    document.getElementById('set-ecc').value = settings.ecc || '';
+                    document.getElementById('set-key').value = settings.ejsKey || '';
+                    document.getElementById('set-svc').value = settings.ejsSvc || '';
+                    document.getElementById('set-tpl').value = settings.ejsTpl || '';
+                }
             }
         });
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (user.email === ADMIN_EMAIL) { 
-                    isAdmin = true; 
                     showAdminLoginArea(); 
                 } else {
                     const q = query(collection(db, "users_metadata"), where("email", "==", user.email));
-                    const snap = await getDocs(q);
-                    if (snap.empty) {
-                        // For Google Sign-ins that aren't pre-registered
-                        await addDoc(collection(db, "users_metadata"), { uid: user.uid, name: user.displayName || user.email.split('@')[0], email: user.email, approved: false });
-                    }
                     onSnapshot(q, s => {
                         const uData = s.docs[0]?.data();
                         if (uData?.approved) { 
                             showScreen('screen-user'); 
                             document.getElementById('user-name-tag').textContent = "Hello, " + (uData.name || user.email.split('@')[0]); 
                             initSync(); 
-                        } else {
-                            showScreen('screen-pending');
-                        }
+                        } else { showScreen('screen-pending'); }
                     });
                 }
-            } else {
-                isAdmin = false;
-                showScreen('screen-login');
-            }
+            } else { showScreen('screen-login'); }
             document.getElementById('loading-overlay').style.display = 'none';
         });
 
-        // --- NEW LOGIN LOGIC ---
+        // Login with PIN logic
         window.handleEmail = async (type) => {
             const e = document.getElementById('auth-email').value.trim();
-            const p = document.getElementById('auth-pass').value;
+            const p = document.getElementById('auth-pass').value.trim();
+            if(!e || !p) return;
 
-            // 1. Try standard Password Login
-            signInWithEmailAndPassword(auth, e, p).catch(async (err) => {
-                // 2. If it fails, check if it's a Temporary PIN in Firestore
+            signInWithEmailAndPassword(auth, e, p).catch(async () => {
                 const q = query(collection(db, "users_metadata"), where("email", "==", e), where("tempPin", "==", p));
                 const snap = await getDocs(q);
-
                 if(!snap.empty) {
                     setupEmail = e;
                     document.getElementById('login-main-form').style.display = 'none';
                     document.getElementById('setup-pass-area').style.display = 'block';
-                } else {
-                    alert("Invalid password or PIN.");
-                }
+                } else { alert("Error: Check credentials or PIN."); }
             });
         };
 
-        // --- HANDSHAKE: FINALIZE SETUP ---
         window.finalizeAccountSetup = async () => {
             const newPass = document.getElementById('new-set-pass').value;
-            if(newPass.length < 6) return alert("Password must be at least 6 characters.");
-
+            if(newPass.length < 6) return alert("Min 6 chars.");
             try {
-                // Create the actual Firebase Account
                 const res = await createUserWithEmailAndPassword(auth, setupEmail, newPass);
-                // Update Firestore to clear PIN and approve
                 const q = query(collection(db, "users_metadata"), where("email", "==", setupEmail));
                 const snap = await getDocs(q);
-                await updateDoc(doc(db, "users_metadata", snap.docs[0].id), { 
-                    uid: res.user.uid, 
-                    tempPin: "", 
-                    approved: true 
-                });
-                alert("Password set! Welcome.");
+                await updateDoc(doc(db, "users_metadata", snap.docs[0].id), { uid: res.user.uid, tempPin: "", approved: true });
                 location.reload();
-            } catch(e) {
-                alert(e.message);
-            }
+            } catch(e) { alert(e.message); }
         };
 
-        // --- ADMIN: PRE-REGISTER ---
         window.adminPreRegisterUser = async () => {
             const e = document.getElementById('admin-reg-email').value.trim();
             const pin = document.getElementById('admin-reg-pin').value.trim();
-            if(!e || !pin) return alert("Please fill both email and PIN");
+            if(!e || !pin) return alert("Fill fields");
+            // Check if already exists
+            const q = query(collection(db, "users_metadata"), where("email", "==", e));
+            const snap = await getDocs(q);
+            if(!snap.empty) return alert("User already registered in database.");
 
-            await addDoc(collection(db, "users_metadata"), {
-                email: e,
-                tempPin: pin,
-                approved: false,
-                name: e.split('@')[0],
-                uid: ""
-            });
-            alert("User Pre-Registered! PIN: " + pin);
-            document.getElementById('admin-reg-email').value = "";
-            document.getElementById('admin-reg-pin').value = "";
-        };
-
-        window.loginWithGoogle = () => signInWithPopup(auth, gProvider);
-        window.signOutUser = () => signOut(auth).then(() => location.reload());
-
-        function showAdminLoginArea() {
-            document.getElementById('auth-main').style.display = 'none';
-            document.getElementById('email-area').style.display = 'none';
-            document.getElementById('admin-area').style.display = 'block';
-        }
-
-        window.tryAdminLogin = () => {
-            if (document.getElementById('admin-pin').value === adminPin) {
-                showScreen('screen-admin'); 
-                initSync();
-                onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => ({id: d.id, ...d.data()})); renderUserTables(); }); 
-                onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); 
-            } else alert("Incorrect PIN.");
-        };
-
-        function initSync() {
-            onSnapshot(collection(db, "inventory"), s => {
-                inv = s.docs.map(d => ({id: d.id, ...d.data()}));
-                renderUserBulkList();
-                renderAdminInv();
-            });
-        }
-
-        function renderUserBulkList() {
-            const list = document.getElementById('user-bulk-list');
-            if(!list) return;
-            list.innerHTML = inv.map(item => `
-                <tr id="row-${item.id}" class="user-table-row">
-                    <td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td>
-                    <td>${item.name}</td>
-                    <td><strong>${item.stock}</strong></td>
-                    <td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0" min="0"></td>
-                </tr>
-            `).join('');
-        }
-
-        window.toggleRowHighlight = (id) => document.getElementById(`row-${id}`).classList.toggle('selected');
-
-        window.submitBulkUpdate = async () => {
-            const note = document.getElementById('bulk-note').value.trim();
-            const date = document.getElementById('bulk-date').value;
-            if(!note || !date) return alert("Purpose and Date are mandatory.");
-            const checks = document.querySelectorAll('.bulk-check:checked');
-            if(checks.length === 0) return alert("Please select at least one item.");
-
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "Processing...";
-            let itemsToAlert = [];
-
-            try {
-                for(let check of checks) {
-                    const id = check.dataset.id;
-                    const qty = parseInt(document.getElementById(`qty-${id}`).value);
-                    const item = inv.find(i => i.id === id);
-                    if(qty > 0) {
-                        if(qty > item.stock) { alert(`Insufficient stock for ${item.name}`); continue; }
-                        const newStock = item.stock - qty;
-                        await updateDoc(doc(db, "inventory", id), { stock: newStock });
-                        await addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` });
-                        if ((newStock / (item.initial || 1)) * 100 <= 35) itemsToAlert.push(`- ${item.name}: ${newStock} left`);
-                    }
-                }
-                if (itemsToAlert.length > 0 && settings.ejsSvc) {
-                    const rec = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ');
-                    await window.emailjs.send(settings.ejsSvc, settings.ejsTpl, { items_list: itemsToAlert.join('\n'), to_email: rec || ADMIN_EMAIL });
-                }
-                alert("Success!"); location.reload();
-            } catch (e) { alert(e.message); btn.disabled = false; btn.innerText = "Submit Batch Requisition"; }
-        };
-
-        window.adminAddItem = async () => {
-            const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value) || 0;
-            if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q || 1 });
-        };
-        
-        window.deleteItem = async (id) => { if(confirm("Delete item?")) await deleteDoc(doc(db, "inventory", id)); };
-        
-        window.saveItemUpdate = async () => {
-            const id = document.getElementById('edit-id').value, n = document.getElementById('edit-name').value, s = parseInt(document.getElementById('edit-stock').value);
-            await updateDoc(doc(db, "inventory", id), { name: n, stock: s });
-            cancelEdit();
+            await addDoc(collection(db, "users_metadata"), { email: e, tempPin: pin, approved: false, name: e.split('@')[0], uid: "" });
+            alert("Done! User PIN: " + pin);
+            document.getElementById('admin-reg-email').value = ""; document.getElementById('admin-reg-pin').value = "";
         };
 
         window.saveAdminSet = async () => {
             await setDoc(doc(db, "settings", "config"), { 
-                pin: document.getElementById('set-pin').value, 
-                e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-ecc').value
-            }, { merge: true });
-            alert("Saved!");
+                pin: document.getElementById('set-pin').value,
+                e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-ecc').value,
+                ejsKey: document.getElementById('set-key').value, ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value
+            });
+            alert("Settings saved!");
         };
 
-        window.toggleAccess = async (id, s) => await updateDoc(doc(db, "users_metadata", id), { approved: s });
+        // --- Other System Functions ---
+        function initSync() {
+            onSnapshot(collection(db, "inventory"), s => {
+                inv = s.docs.map(d => ({id: d.id, ...d.data()}));
+                const list = document.getElementById('user-bulk-list');
+                if(list) list.innerHTML = inv.map(item => `<tr id="row-${item.id}"><td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td><td>${item.name}</td><td><strong>${item.stock}</strong></td><td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0" min="0"></td></tr>`).join('');
+                renderAdminInv();
+            });
+        }
+
+        window.submitBulkUpdate = async () => {
+            const note = document.getElementById('bulk-note').value, date = document.getElementById('bulk-date').value;
+            if(!note || !date) return alert("Required: Purpose & Date");
+            const checks = document.querySelectorAll('.bulk-check:checked');
+            for(let check of checks) {
+                const id = check.dataset.id, qty = parseInt(document.getElementById(`qty-${id}`).value);
+                const item = inv.find(i => i.id === id);
+                if(qty > 0 && qty <= item.stock) {
+                    await updateDoc(doc(db, "inventory", id), { stock: item.stock - qty });
+                    await addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` });
+                }
+            }
+            alert("Success!"); location.reload();
+        };
 
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
@@ -437,9 +337,8 @@
         }
 
         function renderUserTables() {
-            const p = users.filter(u => !u.approved), a = users.filter(u => u.approved);
-            document.getElementById('pending-table').innerHTML = p.map(u => `<tr><td>${u.email}</td><td>${u.tempPin ? 'PIN: '+u.tempPin : 'No PIN'}<button class="btn-approve" onclick="toggleAccess('${u.id}',true)" style="margin-left:10px">Approve</button></td></tr>`).join('');
-            document.getElementById('approved-table').innerHTML = a.map(u => `<tr><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.id}',false)">Revoke</button></td></tr>`).join('');
+            document.getElementById('pending-table').innerHTML = users.filter(u => !u.approved).map(u => `<tr><td>${u.email}</td><td>${u.tempPin ? 'PIN: '+u.tempPin : 'No PIN'}<button class="btn-approve" onclick="toggleAccess('${u.id}',true)" style="margin-left:10px">Approve</button></td></tr>`).join('');
+            document.getElementById('approved-table').innerHTML = users.filter(u => u.approved).map(u => `<tr><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.id}',false)">Revoke</button></td></tr>`).join('');
         }
 
         function renderLogs() {
@@ -447,21 +346,24 @@
                 logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.qty}</td><td>${l.user}</td></tr>`).join('') + `</tbody>`;
         }
 
-        window.editItem = (id) => {
-            const i = inv.find(x=>x.id===id);
-            document.getElementById('create-card').style.display='none'; document.getElementById('update-card').style.display='block';
-            document.getElementById('edit-id').value=id; document.getElementById('edit-name').value=i.name; document.getElementById('edit-stock').value=i.stock;
+        window.adminAddItem = async () => {
+            const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value) || 0;
+            if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q || 1 });
         };
+        window.deleteItem = (id) => { if(confirm("Delete?")) deleteDoc(doc(db, "inventory", id)); };
+        window.saveItemUpdate = () => { updateDoc(doc(db, "inventory", document.getElementById('edit-id').value), { name: document.getElementById('edit-name').value, stock: parseInt(document.getElementById('edit-stock').value) }); cancelEdit(); };
+        window.editItem = (id) => { const i = inv.find(x=>x.id===id); document.getElementById('create-card').style.display='none'; document.getElementById('update-card').style.display='block'; document.getElementById('edit-id').value=id; document.getElementById('edit-name').value=i.name; document.getElementById('edit-stock').value=i.stock; };
         window.cancelEdit = () => { document.getElementById('create-card').style.display='block'; document.getElementById('update-card').style.display='none'; };
+        window.toggleAccess = (id, s) => updateDoc(doc(db, "users_metadata", id), { approved: s });
+        window.toggleRowHighlight = (id) => document.getElementById(`row-${id}`).classList.toggle('selected');
+        window.showEmailForm = () => { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='block'; };
+        function showAdminLoginArea() { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='none'; document.getElementById('admin-area').style.display='block'; }
+        window.tryAdminLogin = () => { if (document.getElementById('admin-pin').value === adminPin) { showScreen('screen-admin'); initSync(); onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => ({id: d.id, ...d.data()})); renderUserTables(); }); onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); } else alert("PIN Wrong"); };
+        window.loginWithGoogle = () => signInWithPopup(auth, gProvider);
+        window.signOutUser = () => signOut(auth).then(() => location.reload());
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
-        window.showEmailForm = () => { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='block'; };
-        window.downloadCSV = () => { 
-            let csv = "Time,Item,Qty,User,Note\n"; 
-            logs.forEach(l => csv += `${l.time},${l.item},${l.qty},${l.user},"${l.note||''}"\n`); 
-            const b = new Blob([csv],{type:'text/csv'}); 
-            const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='History.csv'; a.click(); 
-        };
+        window.downloadCSV = () => { let csv = "Time,Item,Qty,User\n"; logs.forEach(l => csv += `${l.time},${l.item},${l.qty},${l.user}\n`); const b = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='History.csv'; a.click(); };
     </script>
 </body>
 </html>
