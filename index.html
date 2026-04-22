@@ -79,6 +79,9 @@
                 <input type="email" id="auth-email" placeholder="Email">
                 <input type="password" id="auth-pass" placeholder="Password">
                 <button class="btn btn-p" onclick="handleEmail('login')">Sign In</button>
+                <p style="margin-top: 10px; font-size: 12px;">
+                    <a href="javascript:void(0)" onclick="forgotPassword()" style="color: var(--primary); text-decoration: none;">Forgot Password? (Office Email Only)</a>
+                </p>
                 <button class="btn btn-s" onclick="handleEmail('signup')">Sign Up</button>
                 <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
             </div>
@@ -210,7 +213,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB2-G7-Xt4LnARWQ6L9TYIhiLXhs9HHg6E",
@@ -283,6 +286,19 @@
             if(type === 'login') signInWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
             else createUserWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
         };
+        
+        // --- PASSWORD RESET FOR OFFICE EMAIL ---
+        window.forgotPassword = () => {
+            const email = document.getElementById('auth-email').value;
+            if(!email) return alert("Please enter your email address first.");
+            if(!email.toLowerCase().endsWith("@tbo.com")) {
+                return alert("Password reset is only available for @tbo.com office accounts.");
+            }
+            sendPasswordResetEmail(auth, email)
+                .then(() => alert("Password reset link sent to your office Outlook. Please check your inbox."))
+                .catch(err => alert(err.message));
+        };
+
         window.signOutUser = () => signOut(auth).then(() => location.reload());
 
         function showAdminLoginArea() {
