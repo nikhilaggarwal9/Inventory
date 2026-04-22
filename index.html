@@ -56,7 +56,7 @@
         <img src="https://www.tboacademy.com/images/black-option-1.png" alt="Tbo Academy">
     </div>
 
-    <!-- 1. LOGIN SCREEN -->
+    <!-- LOGIN SCREEN -->
     <div id="screen-login" class="screen active">
         <div class="auth-card">
             <h1>Inventory Database</h1>
@@ -89,12 +89,11 @@
         </div>
     </div>
 
-    <!-- 2. PENDING -->
     <div id="screen-pending" class="screen">
         <div class="auth-card"><h2>Access Restricted</h2><p>Your account is currently pending Admin approval.</p><button class="btn btn-s" onclick="signOutUser()">Logout</button></div>
     </div>
 
-    <!-- 3. USER UI -->
+    <!-- USER UI -->
     <div id="screen-user" class="screen">
         <div class="container" style="max-width: 850px;">
             <div class="nav"><h2 id="user-name-tag">Hello</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
@@ -110,7 +109,7 @@
         </div>
     </div>
 
-    <!-- 4. ADMIN PANEL -->
+    <!-- ADMIN PANEL -->
     <div id="screen-admin" class="screen">
         <div class="container">
             <div class="nav"><h2>⚡ Admin Control Panel</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
@@ -122,7 +121,7 @@
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
             </div>
 
-            <!-- Dashboard Overview (RESTORED) -->
+            <!-- Dashboard Overview -->
             <div id="tab-overview" class="tab-content"><div class="card"><table id="admin-dash-list"></table></div></div>
             
             <!-- User Management -->
@@ -153,13 +152,13 @@
                 <div class="card"><table id="admin-inv-list"></table></div>
             </div>
 
-            <!-- History Logs (RESTORED) -->
+            <!-- History Logs -->
             <div id="tab-logs" class="tab-content" style="display:none">
                 <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
                 <div class="card"><table id="admin-log-list"></table></div>
             </div>
 
-            <!-- Settings (RESTORED) -->
+            <!-- Settings -->
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Alert Recipients</h3>
@@ -292,7 +291,6 @@
             alert("Success!"); location.reload();
         };
 
-        // RESTORED OVERVIEW & INVENTORY LOGIC
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
             document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Stock %</th><th>Status</th></tr></thead><tbody>` + 
@@ -302,14 +300,41 @@
                 }).join('') + `</tbody>`;
             
             document.getElementById('admin-inv-list').innerHTML = `<thead><tr><th>Item Name</th><th>Action</th></tr></thead><tbody>` + 
-                inv.map(i => `<tr><td>${i.name}</td><td><button class="btn-edit" onclick="editItem('${i.id}')">Edit</button><button class="btn-danger" onclick="deleteDoc(doc(db,'inventory','${i.id}'))">Delete</button></td></tr>`).join('') + `</tbody>`;
+                inv.map(i => `<tr><td>${i.name}</td><td><button class="btn-edit" onclick="editItem('${i.id}')">Edit</button><button class="btn-danger" onclick="deleteItem('${i.id}')">Delete</button></td></tr>`).join('') + `</tbody>`;
         }
 
-        // RESTORED HISTORY LOGIC
         function renderLogs() {
             if(!document.getElementById('admin-log-list')) return;
             document.getElementById('admin-log-list').innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Qty</th><th>User</th><th>Purpose</th></tr></thead><tbody>` + 
                 logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.qty}</td><td>${l.user}</td><td>${l.note||''}</td></tr>`).join('') + `</tbody>`;
+        }
+
+        // CORRECTED ADMIN APPROVAL FUNCTIONS
+        window.toggleApproval = async (id, status) => {
+            try {
+                await updateDoc(doc(db, "users_metadata", id), { approved: status });
+            } catch (e) { alert("Error: " + e.message); }
+        };
+
+        function renderUserTables() {
+            const pendingList = document.getElementById('pending-table');
+            const approvedList = document.getElementById('approved-table');
+            if(!pendingList || !approvedList) return;
+
+            const p = users.filter(u => !u.approved);
+            const a = users.filter(u => u.approved);
+
+            pendingList.innerHTML = `<thead><tr><th>Email</th><th>Action</th></tr></thead><tbody>` + p.map(u => `
+                <tr>
+                    <td>${u.email || 'New User'}</td>
+                    <td>PIN: ${u.tempPin || 'N/A'}<button class="btn-approve" onclick="toggleApproval('${u.id}', true)" style="margin-left:10px">Approve</button></td>
+                </tr>`).join('') + `</tbody>`;
+
+            approvedList.innerHTML = `<thead><tr><th>Email</th><th>Action</th></tr></thead><tbody>` + a.map(u => `
+                <tr>
+                    <td>${u.email || 'Approved User'}</td>
+                    <td><button class="btn-danger" onclick="toggleApproval('${u.id}', false)">Revoke</button></td>
+                </tr>`).join('') + `</tbody>`;
         }
 
         window.saveAdminSet = async () => {
@@ -321,18 +346,19 @@
             alert("Settings saved!");
         };
 
-        function showAdminLoginArea() { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='none'; document.getElementById('admin-area').style.display='block'; }
-        window.tryAdminLogin = () => { if (document.getElementById('admin-pin-field').value === adminPin) { showScreen('screen-admin'); initSync(); onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => ({id: d.id, ...d.data()})); renderUserTables(); }); onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); } else alert("PIN Wrong"); };
-        function renderUserTables() { document.getElementById('pending-table').innerHTML = users.filter(u=>!u.approved).map(u => `<tr><td>${u.email}</td><td>PIN: ${u.tempPin}<button class="btn-approve" onclick="updateDoc(doc(db,'users_metadata','${u.id}'),{approved:true})">Approve</button></td></tr>`).join(''); document.getElementById('approved-table').innerHTML = users.filter(u=>u.approved).map(u => `<tr><td>${u.email}</td><td><button class="btn-danger" onclick="updateDoc(doc(db,'users_metadata','${u.id}'),{approved:false})">Revoke</button></td></tr>`).join(''); }
-        window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value); if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q }); };
+        window.deleteItem = async (id) => { if(confirm("Delete item?")) await deleteDoc(doc(db, "inventory", id)); };
         window.editItem = (id) => { const i = inv.find(x=>x.id===id); document.getElementById('create-card').style.display='none'; document.getElementById('update-card').style.display='block'; document.getElementById('edit-id').value=id; document.getElementById('edit-name').value=i.name; document.getElementById('edit-stock').value=i.stock; };
         window.cancelEdit = () => { document.getElementById('create-card').style.display='block'; document.getElementById('update-card').style.display='none'; };
-        window.saveItemUpdate = () => { updateDoc(doc(db, "inventory", document.getElementById('edit-id').value), { name: document.getElementById('edit-name').value, stock: parseInt(document.getElementById('edit-stock').value) }); cancelEdit(); };
+        window.saveItemUpdate = async () => { await updateDoc(doc(db, "inventory", document.getElementById('edit-id').value), { name: document.getElementById('edit-name').value, stock: parseInt(document.getElementById('edit-stock').value) }); cancelEdit(); };
+        window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value); if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q }); };
+        
         window.signOutUser = () => signOut(auth).then(() => location.reload());
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
         window.showEmailForm = () => { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='block'; };
         window.loginWithGoogle = () => signInWithPopup(auth, gProvider);
+        function showAdminLoginArea() { document.getElementById('auth-main').style.display='none'; document.getElementById('email-area').style.display='none'; document.getElementById('admin-area').style.display='block'; }
+        window.tryAdminLogin = () => { if (document.getElementById('admin-pin-field').value === adminPin) { showScreen('screen-admin'); initSync(); onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => ({id: d.id, ...d.data()})); renderUserTables(); }); onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); } else alert("PIN Wrong"); };
         window.downloadCSV = () => { let csv = "Time,Item,Qty,User,Note\n"; logs.forEach(l => csv += `${l.time},${l.item},${l.qty},${l.user},"${l.note||''}"\n`); const b = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='History.csv'; a.click(); };
     </script>
 </body>
