@@ -48,7 +48,6 @@
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { background: #f8fafc; color: var(--text-light); font-size: 11px; text-transform: uppercase; }
         
-        /* User Checklist Styles */
         .user-table-row.selected { background-color: #f0f7ff; }
         .qty-input-small { width: 80px !important; padding: 8px !important; margin: 0 !important; text-align: center; border: 1px solid #cbd5e0 !important; }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
@@ -71,17 +70,29 @@
         <div class="auth-card">
             <h1>Inventory Database</h1>
             <p style="color:var(--text-light); margin-bottom:20px">Sign in to manage stock</p>
-            <div id="auth-main">
-                <button class="btn btn-g" onclick="loginWithGoogle()">Sign in with Google</button>
-                <button class="btn btn-p" onclick="showEmailForm()">Email Login</button>
+            
+            <div id="login-main-form">
+                <div id="auth-main">
+                    <button class="btn btn-g" onclick="loginWithGoogle()">Sign in with Google</button>
+                    <button class="btn btn-p" onclick="showEmailForm()">Email Login</button>
+                </div>
+                <div id="email-area" style="display:none;">
+                    <input type="email" id="auth-email" placeholder="Email">
+                    <input type="password" id="auth-pass" placeholder="Password or Temporary PIN">
+                    <button class="btn btn-p" onclick="handleEmail('login')">Sign In</button>
+                    <p style="font-size:11px; color:gray; margin-top:10px;">First time? Enter the PIN provided by Admin.</p>
+                    <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
+                </div>
             </div>
-            <div id="email-area" style="display:none;">
-                <input type="email" id="auth-email" placeholder="Email">
-                <input type="password" id="auth-pass" placeholder="Password">
-                <button class="btn btn-p" onclick="handleEmail('login')">Sign In</button>
-                <button class="btn btn-s" onclick="handleEmail('signup')">Sign Up</button>
-                <button class="btn btn-s" onclick="location.reload()" style="background:none;">Back</button>
+
+            <!-- Handshake Area: Set New Password -->
+            <div id="setup-pass-area" style="display:none;">
+                <h3 style="margin-bottom:10px">Set Permanent Password</h3>
+                <p style="font-size:12px; color:gray; margin-bottom:15px">You are logging in with a temporary PIN. Please set a secure password for your account.</p>
+                <input type="password" id="new-set-pass" placeholder="Enter New Password (min 6 characters)">
+                <button class="btn btn-p" onclick="finalizeAccountSetup()">Save Password & Enter</button>
             </div>
+
             <div id="admin-area" style="display:none;">
                 <h3 style="margin-bottom:10px">Admin Verified</h3>
                 <input type="password" id="admin-pin" placeholder="Enter Admin PIN">
@@ -100,36 +111,24 @@
         </div>
     </div>
 
-    <!-- 3. USER INTERFACE (CHECKLIST) -->
+    <!-- 3. USER INTERFACE -->
     <div id="screen-user" class="screen">
         <div class="container" style="max-width: 850px;">
             <div class="nav"><h2 id="user-name-tag">Hello</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
             
             <div class="card">
                 <h3 style="margin-bottom:15px;">Inventory Stock-Out</h3>
-                <p style="font-size: 13px; color: gray; margin-bottom: 15px;">Tick the items you are taking and enter the specific quantity for each.</p>
-                
                 <table>
                     <thead>
-                        <tr>
-                            <th style="width:50px">Select</th>
-                            <th>Item Name</th>
-                            <th>Current Stock</th>
-                            <th style="width:110px">Quantity to Take</th>
-                        </tr>
+                        <tr><th style="width:50px">Select</th><th>Item Name</th><th>Current Stock</th><th style="width:110px">Quantity to Take</th></tr>
                     </thead>
-                    <tbody id="user-bulk-list">
-                        <!-- Loaded via JS -->
-                    </tbody>
+                    <tbody id="user-bulk-list"></tbody>
                 </table>
-
                 <div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
                     <label>Event Name / Purpose (Mandatory)</label>
-                    <textarea id="bulk-note" placeholder="Example: Sales Training Mumbai - Grand Hyatt"></textarea>
-                    
+                    <textarea id="bulk-note" placeholder="Example: Sales Training Mumbai"></textarea>
                     <label>Date of Event (Mandatory)</label>
                     <input type="date" id="bulk-date">
-
                     <button class="btn btn-p" id="submit-btn" onclick="submitBulkUpdate()">Submit Batch Requisition</button>
                 </div>
             </div>
@@ -148,18 +147,22 @@
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
             </div>
 
-            <!-- Dashboard -->
-            <div id="tab-overview" class="tab-content">
-                <div class="card"><table id="admin-dash-list"></table></div>
-            </div>
+            <div id="tab-overview" class="tab-content"><div class="card"><table id="admin-dash-list"></table></div></div>
             
-            <!-- User Management -->
             <div id="tab-team" class="tab-content" style="display:none">
-                <div class="card"><h3>Pending Approval</h3><table id="pending-table"></table></div>
+                <div class="card">
+                    <h3>Register New User</h3>
+                    <p style="font-size:12px; color:gray; margin-bottom:10px;">Provide an email and a 4-digit temporary PIN. The user will be asked to set their own password on their first login.</p>
+                    <div style="display:flex; gap:10px;">
+                        <input type="email" id="admin-reg-email" placeholder="User Email" style="margin:0">
+                        <input type="text" id="admin-reg-pin" placeholder="Temp PIN (e.g. 1234)" style="margin:0; width:150px">
+                        <button class="btn btn-p" style="margin:0; width:auto" onclick="adminPreRegisterUser()">Register</button>
+                    </div>
+                </div>
+                <div class="card"><h3>Pending PIN Setup / Approval</h3><table id="pending-table"></table></div>
                 <div class="card"><h3>Approved Team</h3><table id="approved-table"></table></div>
             </div>
 
-            <!-- Inventory Management -->
             <div id="tab-inv" class="tab-content" style="display:none">
                 <div class="card" id="create-card">
                     <h3>Create New Item</h3>
@@ -180,13 +183,11 @@
                 <div class="card"><table id="admin-inv-list"></table></div>
             </div>
 
-            <!-- History Logs -->
             <div id="tab-logs" class="tab-content" style="display:none">
                 <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
                 <div class="card"><table id="admin-log-list"></table></div>
             </div>
 
-            <!-- Settings -->
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Alert Recipients</h3>
@@ -194,13 +195,8 @@
                     <label>To: Email 2</label><input type="email" id="set-e2">
                     <label>Cc: Email</label><input type="email" id="set-ecc">
                     <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <h3>EmailJS Integration</h3>
-                    <label>Public Key</label><input type="text" id="set-key">
-                    <label>Service ID</label><input type="text" id="set-svc">
-                    <label>Template ID</label><input type="text" id="set-tpl">
-                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <label>System Admin PIN</label>
-                    <input type="text" id="set-pin" placeholder="Enter new PIN">
+                    <h3>System Admin PIN</h3>
+                    <input type="text" id="set-pin">
                     <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
                 </div>
             </div>
@@ -209,7 +205,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -227,7 +223,7 @@
         const auth = getAuth(app);
         const gProvider = new GoogleAuthProvider();
 
-        let inv = [], logs = [], users = [], settings = {};
+        let inv = [], logs = [], users = [], settings = {}, setupEmail = "";
         let adminPin = 'admin123'; 
         let isAdmin = false;
 
@@ -236,17 +232,8 @@
                 settings = d.data();
                 adminPin = settings.pin ? settings.pin.toString() : 'admin123';
                 if(settings.ejsKey) window.emailjs.init({ publicKey: settings.ejsKey });
-
                 const elPin = document.getElementById('set-pin');
-                if(elPin) {
-                    elPin.value = adminPin;
-                    document.getElementById('set-e1').value = settings.e1 || '';
-                    document.getElementById('set-e2').value = settings.e2 || '';
-                    document.getElementById('set-ecc').value = settings.ecc || '';
-                    document.getElementById('set-key').value = settings.ejsKey || '';
-                    document.getElementById('set-svc').value = settings.ejsSvc || '';
-                    document.getElementById('set-tpl').value = settings.ejsTpl || '';
-                }
+                if(elPin) elPin.value = adminPin;
             }
         });
 
@@ -256,14 +243,17 @@
                     isAdmin = true; 
                     showAdminLoginArea(); 
                 } else {
-                    const uRef = doc(db, "users_metadata", user.uid);
-                    const uSnap = await getDoc(uRef);
-                    if (!uSnap.exists()) await setDoc(uRef, { uid: user.uid, name: user.displayName || user.email.split('@')[0], email: user.email, approved: false });
-                    
-                    onSnapshot(uRef, snap => {
-                        if (snap.data()?.approved) { 
+                    const q = query(collection(db, "users_metadata"), where("email", "==", user.email));
+                    const snap = await getDocs(q);
+                    if (snap.empty) {
+                        // For Google Sign-ins that aren't pre-registered
+                        await addDoc(collection(db, "users_metadata"), { uid: user.uid, name: user.displayName || user.email.split('@')[0], email: user.email, approved: false });
+                    }
+                    onSnapshot(q, s => {
+                        const uData = s.docs[0]?.data();
+                        if (uData?.approved) { 
                             showScreen('screen-user'); 
-                            document.getElementById('user-name-tag').textContent = "Hello, " + snap.data().name; 
+                            document.getElementById('user-name-tag').textContent = "Hello, " + (uData.name || user.email.split('@')[0]); 
                             initSync(); 
                         } else {
                             showScreen('screen-pending');
@@ -277,12 +267,69 @@
             document.getElementById('loading-overlay').style.display = 'none';
         });
 
-        window.loginWithGoogle = () => signInWithPopup(auth, gProvider);
-        window.handleEmail = (type) => {
-            const e = document.getElementById('auth-email').value, p = document.getElementById('auth-pass').value;
-            if(type === 'login') signInWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
-            else createUserWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
+        // --- NEW LOGIN LOGIC ---
+        window.handleEmail = async (type) => {
+            const e = document.getElementById('auth-email').value.trim();
+            const p = document.getElementById('auth-pass').value;
+
+            // 1. Try standard Password Login
+            signInWithEmailAndPassword(auth, e, p).catch(async (err) => {
+                // 2. If it fails, check if it's a Temporary PIN in Firestore
+                const q = query(collection(db, "users_metadata"), where("email", "==", e), where("tempPin", "==", p));
+                const snap = await getDocs(q);
+
+                if(!snap.empty) {
+                    setupEmail = e;
+                    document.getElementById('login-main-form').style.display = 'none';
+                    document.getElementById('setup-pass-area').style.display = 'block';
+                } else {
+                    alert("Invalid password or PIN.");
+                }
+            });
         };
+
+        // --- HANDSHAKE: FINALIZE SETUP ---
+        window.finalizeAccountSetup = async () => {
+            const newPass = document.getElementById('new-set-pass').value;
+            if(newPass.length < 6) return alert("Password must be at least 6 characters.");
+
+            try {
+                // Create the actual Firebase Account
+                const res = await createUserWithEmailAndPassword(auth, setupEmail, newPass);
+                // Update Firestore to clear PIN and approve
+                const q = query(collection(db, "users_metadata"), where("email", "==", setupEmail));
+                const snap = await getDocs(q);
+                await updateDoc(doc(db, "users_metadata", snap.docs[0].id), { 
+                    uid: res.user.uid, 
+                    tempPin: "", 
+                    approved: true 
+                });
+                alert("Password set! Welcome.");
+                location.reload();
+            } catch(e) {
+                alert(e.message);
+            }
+        };
+
+        // --- ADMIN: PRE-REGISTER ---
+        window.adminPreRegisterUser = async () => {
+            const e = document.getElementById('admin-reg-email').value.trim();
+            const pin = document.getElementById('admin-reg-pin').value.trim();
+            if(!e || !pin) return alert("Please fill both email and PIN");
+
+            await addDoc(collection(db, "users_metadata"), {
+                email: e,
+                tempPin: pin,
+                approved: false,
+                name: e.split('@')[0],
+                uid: ""
+            });
+            alert("User Pre-Registered! PIN: " + pin);
+            document.getElementById('admin-reg-email').value = "";
+            document.getElementById('admin-reg-pin').value = "";
+        };
+
+        window.loginWithGoogle = () => signInWithPopup(auth, gProvider);
         window.signOutUser = () => signOut(auth).then(() => location.reload());
 
         function showAdminLoginArea() {
@@ -292,15 +339,12 @@
         }
 
         window.tryAdminLogin = () => {
-            const entered = document.getElementById('admin-pin').value;
-            if (entered === adminPin) {
+            if (document.getElementById('admin-pin').value === adminPin) {
                 showScreen('screen-admin'); 
                 initSync();
-                onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => d.data()); renderUserTables(); }); 
+                onSnapshot(collection(db, "users_metadata"), s => { users = s.docs.map(d => ({id: d.id, ...d.data()})); renderUserTables(); }); 
                 onSnapshot(query(collection(db, "logs"), orderBy("time", "desc"), limit(100)), s => { logs = s.docs.map(d => d.data()); renderLogs(); }); 
-            } else {
-                alert("Incorrect PIN.");
-            }
+            } else alert("Incorrect PIN.");
         };
 
         function initSync() {
@@ -324,22 +368,17 @@
             `).join('');
         }
 
-        window.toggleRowHighlight = (id) => {
-            document.getElementById(`row-${id}`).classList.toggle('selected');
-        };
+        window.toggleRowHighlight = (id) => document.getElementById(`row-${id}`).classList.toggle('selected');
 
-        // --- FIXED BATCH UPDATE WITH EMAIL LOGIC ---
         window.submitBulkUpdate = async () => {
             const note = document.getElementById('bulk-note').value.trim();
             const date = document.getElementById('bulk-date').value;
             if(!note || !date) return alert("Purpose and Date are mandatory.");
-
             const checks = document.querySelectorAll('.bulk-check:checked');
             if(checks.length === 0) return alert("Please select at least one item.");
 
             const btn = document.getElementById('submit-btn');
             btn.disabled = true; btn.innerText = "Processing...";
-
             let itemsToAlert = [];
 
             try {
@@ -347,103 +386,65 @@
                     const id = check.dataset.id;
                     const qty = parseInt(document.getElementById(`qty-${id}`).value);
                     const item = inv.find(i => i.id === id);
-
                     if(qty > 0) {
                         if(qty > item.stock) { alert(`Insufficient stock for ${item.name}`); continue; }
                         const newStock = item.stock - qty;
-                        const total = item.initial || item.stock || 1;
-                        const pct = (newStock / total) * 100;
-
-                        // Step 1: Update DB
                         await updateDoc(doc(db, "inventory", id), { stock: newStock });
-                        await addDoc(collection(db, "logs"), { 
-                            time: new Date().toISOString(), 
-                            item: item.name, 
-                            type: 'OUT', 
-                            qty: qty, 
-                            user: auth.currentUser.email, 
-                            note: `Event: ${note} | Date: ${date}` 
-                        });
-                        
-                        // Step 2: Track if low for email
-                        if (pct <= 35) {
-                            itemsToAlert.push(`- ${item.name}: ${newStock} left (${Math.round(pct)}%)`);
-                        }
+                        await addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` });
+                        if ((newStock / (item.initial || 1)) * 100 <= 35) itemsToAlert.push(`- ${item.name}: ${newStock} left`);
                     }
                 }
-
-                // Step 3: Send ONE combined email if items are low
-                if (itemsToAlert.length > 0 && settings.ejsSvc && settings.ejsTpl && settings.ejsKey) {
-                    const recipients = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ');
-                    await window.emailjs.send(settings.ejsSvc, settings.ejsTpl, {
-                        items_list: itemsToAlert.join('\n'),
-                        to_email: recipients || ADMIN_EMAIL
-                    }, { publicKey: settings.ejsKey }).then(() => console.log("Alert Sent"), (err) => console.error("Email Error:", err));
+                if (itemsToAlert.length > 0 && settings.ejsSvc) {
+                    const rec = [settings.e1, settings.e2, settings.ecc].filter(e => e).join(', ');
+                    await window.emailjs.send(settings.ejsSvc, settings.ejsTpl, { items_list: itemsToAlert.join('\n'), to_email: rec || ADMIN_EMAIL });
                 }
-
-                alert("Inventory Update Successful!");
-                location.reload();
-            } catch (e) {
-                alert("Error: " + e.message);
-                btn.disabled = false; btn.innerText = "Submit Batch Requisition";
-            }
+                alert("Success!"); location.reload();
+            } catch (e) { alert(e.message); btn.disabled = false; btn.innerText = "Submit Batch Requisition"; }
         };
 
         window.adminAddItem = async () => {
             const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value) || 0;
             if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q || 1 });
-            document.getElementById('add-name').value=''; document.getElementById('add-qty').value='';
         };
         
-        window.deleteItem = async (id) => { if(confirm("Delete item forever?")) await deleteDoc(doc(db, "inventory", id)); };
+        window.deleteItem = async (id) => { if(confirm("Delete item?")) await deleteDoc(doc(db, "inventory", id)); };
         
         window.saveItemUpdate = async () => {
             const id = document.getElementById('edit-id').value, n = document.getElementById('edit-name').value, s = parseInt(document.getElementById('edit-stock').value);
-            const itemRef = doc(db, "inventory", id);
-            const snap = await getDoc(itemRef);
-            const oldData = snap.data();
-            const newInitial = (s > (oldData.initial || 0)) ? s : (oldData.initial || s);
-            await updateDoc(itemRef, { name: n, stock: s, initial: newInitial });
+            await updateDoc(doc(db, "inventory", id), { name: n, stock: s });
             cancelEdit();
         };
 
         window.saveAdminSet = async () => {
-            const newPin = document.getElementById('set-pin').value;
             await setDoc(doc(db, "settings", "config"), { 
-                pin: newPin, 
-                e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, 
-                ecc: document.getElementById('set-ecc').value, ejsKey: document.getElementById('set-key').value, 
-                ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value 
-            });
-            alert("Settings saved!");
+                pin: document.getElementById('set-pin').value, 
+                e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-ecc').value
+            }, { merge: true });
+            alert("Saved!");
         };
 
-        window.toggleAccess = async (uid, s) => await updateDoc(doc(db, "users_metadata", uid), { approved: s });
+        window.toggleAccess = async (id, s) => await updateDoc(doc(db, "users_metadata", id), { approved: s });
 
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
-            document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Stock %</th><th>Status</th></tr></thead><tbody>` + 
+            document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Status</th></tr></thead><tbody>` + 
                 inv.map(i => {
-                    const total = i.initial || i.stock || 1;
-                    const p = Math.round((i.stock / total) * 100);
-                    return `<tr><td>${i.name}</td><td><strong>${i.stock}</strong></td><td><strong>${p}%</strong></td><td><span class="badge badge-${p<=35?'low':'ok'}">${p<=35?'LOW':'OK'}</span></td></tr>`
+                    const p = Math.round((i.stock / (i.initial||1)) * 100);
+                    return `<tr><td>${i.name}</td><td>${i.stock}</td><td><span class="badge badge-${p<=35?'low':'ok'}">${p<=35?'LOW':'OK'}</span></td></tr>`
                 }).join('') + `</tbody>`;
-            
-            document.getElementById('admin-inv-list').innerHTML = `<thead><tr><th>Item Name</th><th>Action</th></tr></thead><tbody>` + 
+            document.getElementById('admin-inv-list').innerHTML = `<thead><tr><th>Item</th><th>Action</th></tr></thead><tbody>` + 
                 inv.map(i => `<tr><td>${i.name}</td><td><button class="btn-edit" onclick="editItem('${i.id}')">Edit</button><button class="btn-danger" onclick="deleteItem('${i.id}')">Delete</button></td></tr>`).join('') + `</tbody>`;
         }
 
         function renderUserTables() {
             const p = users.filter(u => !u.approved), a = users.filter(u => u.approved);
-            const b = document.getElementById('req-badge');
-            b.style.display = p.length ? 'inline' : 'none'; b.textContent = p.length;
-            document.getElementById('pending-table').innerHTML = p.map(u => `<tr><td>${u.email}</td><td><button class="btn-approve" onclick="toggleAccess('${u.uid}',true)">Approve</button></td></tr>`).join('');
-            document.getElementById('approved-table').innerHTML = a.map(u => `<tr><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.uid}',false)">Revoke</button></td></tr>`).join('');
+            document.getElementById('pending-table').innerHTML = p.map(u => `<tr><td>${u.email}</td><td>${u.tempPin ? 'PIN: '+u.tempPin : 'No PIN'}<button class="btn-approve" onclick="toggleAccess('${u.id}',true)" style="margin-left:10px">Approve</button></td></tr>`).join('');
+            document.getElementById('approved-table').innerHTML = a.map(u => `<tr><td>${u.email}</td><td><button class="btn-danger" onclick="toggleAccess('${u.id}',false)">Revoke</button></td></tr>`).join('');
         }
 
         function renderLogs() {
-            document.getElementById('admin-log-list').innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Qty</th><th>User</th><th>Purpose</th></tr></thead><tbody>` + 
-                logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.qty}</td><td>${l.user}</td><td>${l.note||''}</td></tr>`).join('') + `</tbody>`;
+            document.getElementById('admin-log-list').innerHTML = `<thead><tr><th>Time</th><th>Item</th><th>Qty</th><th>User</th></tr></thead><tbody>` + 
+                logs.map(l => `<tr><td>${new Date(l.time).toLocaleTimeString()}</td><td>${l.item}</td><td>${l.qty}</td><td>${l.user}</td></tr>`).join('') + `</tbody>`;
         }
 
         window.editItem = (id) => {
@@ -459,7 +460,7 @@
             let csv = "Time,Item,Qty,User,Note\n"; 
             logs.forEach(l => csv += `${l.time},${l.item},${l.qty},${l.user},"${l.note||''}"\n`); 
             const b = new Blob([csv],{type:'text/csv'}); 
-            const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='Inventory_History.csv'; a.click(); 
+            const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='History.csv'; a.click(); 
         };
     </script>
 </body>
