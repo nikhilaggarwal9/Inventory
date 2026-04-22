@@ -32,11 +32,11 @@
         .btn-p { background: var(--primary); color: white; margin-top: 10px; }
         .btn-g { background: white; color: #444; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
         .btn-s { background: var(--border); color: var(--text); margin-top: 10px; }
-        .btn-danger { background: var(--danger); color: white; width: auto; padding: 6px 12px; font-size: 11px; border-radius: 4px; }
-        .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 12px; font-size: 11px; border-radius: 4px; }
+        .btn-danger { background: var(--danger); color: white; width: auto; padding: 6px 12px; font-size: 11px; border-radius: 4px; border: none; }
+        .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 12px; font-size: 11px; border-radius: 4px; border: none; }
         .btn-edit { background: #edf2ff; color: var(--primary); width: auto; padding: 6px 12px; font-size: 11px; border: 1px solid #d0dfff; margin-right: 5px; border-radius: 4px; }
         
-        /* User Checklist UI */
+        /* User Checklist UI (RESTORED AS EARLIER) */
         .user-table-row.selected { background-color: #f0f7ff; }
         .qty-input-small { width: 80px !important; padding: 8px !important; margin: 0 !important; text-align: center; border: 1px solid #cbd5e0 !important; }
 
@@ -140,7 +140,10 @@
                 <button class="tab-btn" onclick="switchTab('logs')">History</button>
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
             </div>
+
+            <!-- Dashboard Overview (RESTORED AS EARLIER) -->
             <div id="tab-overview" class="tab-content"><div class="card"><table id="admin-dash-list"></table></div></div>
+            
             <div id="tab-team" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Register New User</h3>
@@ -153,6 +156,7 @@
                 <div class="card"><h3>Pending Approval</h3><table id="pending-table"></table></div>
                 <div class="card"><h3>Approved Team</h3><table id="approved-table"></table></div>
             </div>
+
             <div id="tab-inv" class="tab-content" style="display:none">
                 <div class="card" id="create-card">
                     <h3>Create New Item</h3>
@@ -165,11 +169,27 @@
                 </div>
                 <div class="card"><table id="admin-inv-list"></table></div>
             </div>
-            <div id="tab-logs" class="tab-content" style="display:none"><div class="card"><table id="admin-log-list"></table></div></div>
+
+            <!-- History Logs (RESTORED AS EARLIER) -->
+            <div id="tab-logs" class="tab-content" style="display:none">
+                <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
+                <div class="card"><table id="admin-log-list"></table></div>
+            </div>
+
+            <!-- Settings (RESTORED AS EARLIER) -->
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
-                    <label>To: Email 1</label><input type="email" id="set-e1"><label>To: Email 2</label><input type="email" id="set-e2">
-                    <label>Admin PIN</label><input type="text" id="set-pin">
+                    <h3>Alert Recipients</h3>
+                    <label>To: Email 1</label><input type="email" id="set-e1">
+                    <label>To: Email 2</label><input type="email" id="set-e2">
+                    <label>Cc: Email</label><input type="email" id="set-ecc">
+                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+                    <h3>EmailJS Integration</h3>
+                    <label>Public Key</label><input type="text" id="set-key">
+                    <label>Service ID</label><input type="text" id="set-svc">
+                    <label>Template ID</label><input type="text" id="set-tpl">
+                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+                    <label>System Admin PIN</label><input type="text" id="set-pin">
                     <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
                 </div>
             </div>
@@ -178,7 +198,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -201,10 +221,15 @@
         onSnapshot(doc(db, "settings", "config"), d => {
             if(d.exists()) {
                 settings = d.data(); adminPin = settings.pin || 'admin123';
+                if(settings.ejsKey) window.emailjs.init({ publicKey: settings.ejsKey });
                 if(document.getElementById('set-pin')) {
                     document.getElementById('set-pin').value = adminPin;
                     document.getElementById('set-e1').value = settings.e1 || '';
                     document.getElementById('set-e2').value = settings.e2 || '';
+                    document.getElementById('set-ecc').value = settings.ecc || '';
+                    document.getElementById('set-key').value = settings.ejsKey || '';
+                    document.getElementById('set-svc').value = settings.ejsSvc || '';
+                    document.getElementById('set-tpl').value = settings.ejsTpl || '';
                 }
             }
         });
@@ -241,7 +266,7 @@
 
         window.finalizeAccountSetup = async () => {
             const newPass = document.getElementById('new-set-pass').value;
-            if(newPass.length < 6) return alert("Min 6 chars.");
+            if(newPass.length < 6) return alert("Min 6 characters.");
             try {
                 const res = await createUserWithEmailAndPassword(auth, setupEmail, newPass);
                 const q = query(collection(db, "users_metadata"), where("email", "==", setupEmail));
@@ -275,14 +300,21 @@
             onSnapshot(collection(db, "inventory"), s => {
                 inv = s.docs.map(d => ({id: d.id, ...d.data()}));
                 const list = document.getElementById('user-bulk-list');
-                if(list) list.innerHTML = inv.map(item => `<tr id="row-${item.id}" class="user-table-row"><td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td><td>${item.name}</td><td><strong>${item.stock}</strong></td><td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0"></td></tr>`).join('');
+                if(list) list.innerHTML = inv.map(item => `
+                    <tr id="row-${item.id}" class="user-table-row">
+                        <td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td>
+                        <td>${item.name}</td>
+                        <td><strong>${item.stock}</strong></td>
+                        <td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0" min="0"></td>
+                    </tr>
+                `).join('');
                 renderAdminInv();
             });
         }
 
         window.toggleRowHighlight = (id) => document.getElementById(`row-${id}`).classList.toggle('selected');
 
-        // BATCH UPDATE (FIXED FOR MULTIPLE ITEMS)
+        // BATCH UPDATE: FIXES MULTIPLE ITEM PUNCHING
         window.submitBulkUpdate = async () => {
             const note = document.getElementById('bulk-note').value, date = document.getElementById('bulk-date').value;
             if(!note || !date) return alert("Purpose & Date required.");
@@ -290,24 +322,39 @@
             if(checks.length === 0) return alert("Select items.");
 
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "Syncing...";
+            btn.disabled = true; btn.innerText = "Syncing All Items...";
 
-            let updates = [];
+            const batch = writeBatch(db);
+            let itemsToAlert = [];
+
             for(let check of checks) {
                 const id = check.dataset.id, qty = parseInt(document.getElementById(`qty-${id}`).value);
                 const item = inv.find(i => i.id === id);
                 if(qty > 0 && qty <= item.stock) {
-                    updates.push(updateDoc(doc(db, "inventory", id), { stock: item.stock - qty }));
-                    updates.push(addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` }));
+                    const newStock = item.stock - qty;
+                    // Add update to batch
+                    batch.update(doc(db, "inventory", id), { stock: newStock });
+                    // Add log to batch
+                    const newLogRef = doc(collection(db, "logs"));
+                    batch.set(newLogRef, { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` });
+                    
+                    const pct = Math.round((newStock / (item.initial || 1)) * 100);
+                    if(pct <= 35) itemsToAlert.push(`${item.name} (${newStock} left)`);
                 }
             }
 
             try {
-                await Promise.all(updates);
-                alert("Inventory Updated!");
+                await batch.commit(); // Sends all data in ONE go
+                
+                if (itemsToAlert.length > 0 && settings.ejsSvc) {
+                    const rec = [settings.e1, settings.e2, settings.ecc].filter(x=>x).join(', ');
+                    window.emailjs.send(settings.ejsSvc, settings.ejsTpl, { items_list: itemsToAlert.join(', '), to_email: rec || ADMIN_EMAIL });
+                }
+
+                alert("All items updated successfully!");
                 location.reload();
             } catch(e) {
-                alert("Error: " + e.message);
+                alert("Error Syncing: " + e.message);
                 btn.disabled = false; btn.innerText = "Submit Batch Requisition";
             }
         };
@@ -330,8 +377,11 @@
         }
 
         window.saveAdminSet = async () => {
-            await setDoc(doc(db, "settings", "config"), { pin: document.getElementById('set-pin').value, e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value }, { merge: true });
-            alert("Saved");
+            await setDoc(doc(db, "settings", "config"), { 
+                pin: document.getElementById('set-pin').value, e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-ecc').value,
+                ejsKey: document.getElementById('set-key').value, ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value
+            });
+            alert("Settings saved!");
         };
 
         window.deleteItem = async (id) => { if(confirm("Delete item?")) await deleteDoc(doc(db, "inventory", id)); };
@@ -339,6 +389,7 @@
         window.cancelEdit = () => { document.getElementById('create-card').style.display='block'; document.getElementById('update-card').style.display='none'; };
         window.saveItemUpdate = async () => { await updateDoc(doc(db, "inventory", document.getElementById('edit-id').value), { name: document.getElementById('edit-name').value, stock: parseInt(document.getElementById('edit-stock').value) }); cancelEdit(); };
         window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value); if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q }); };
+        
         window.signOutUser = () => signOut(auth).then(() => location.reload());
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
