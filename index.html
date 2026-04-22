@@ -22,12 +22,10 @@
         .screen.active { display: block; }
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* Auth Cards */
         .auth-card { max-width: 440px; margin: 40px auto; background: var(--surface); padding: 2.5rem; border-radius: var(--radius); box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; margin-bottom: 15px; }
         label { font-size: 13px; font-weight: 600; color: var(--text-light); display: block; text-align: left; }
         
-        /* Buttons */
         .btn { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; width: 100%; }
         .btn-p { background: var(--primary); color: white; margin-top: 10px; }
         .btn-g { background: white; color: #444; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
@@ -36,7 +34,6 @@
         .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 12px; font-size: 11px; border-radius: 4px; border: none; }
         .btn-edit { background: #edf2ff; color: var(--primary); width: auto; padding: 6px 12px; font-size: 11px; border: 1px solid #d0dfff; margin-right: 5px; border-radius: 4px; }
         
-        /* User Checklist UI (RESTORED AS EARLIER) */
         .user-table-row.selected { background-color: #f0f7ff; }
         .qty-input-small { width: 80px !important; padding: 8px !important; margin: 0 !important; text-align: center; border: 1px solid #cbd5e0 !important; }
 
@@ -120,7 +117,7 @@
                 </table>
                 <div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
                     <label>Event Name / Purpose (Mandatory)</label>
-                    <textarea id="bulk-note" placeholder="Example: Sales Training Mumbai - Grand Hyatt"></textarea>
+                    <textarea id="bulk-note" placeholder="Example: Sales Training Mumbai"></textarea>
                     <label>Date of Event (Mandatory)</label>
                     <input type="date" id="bulk-date">
                     <button class="btn btn-p" id="submit-btn" onclick="submitBulkUpdate()">Submit Batch Requisition</button>
@@ -140,10 +137,7 @@
                 <button class="tab-btn" onclick="switchTab('logs')">History</button>
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
             </div>
-
-            <!-- Dashboard Overview (RESTORED AS EARLIER) -->
             <div id="tab-overview" class="tab-content"><div class="card"><table id="admin-dash-list"></table></div></div>
-            
             <div id="tab-team" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Register New User</h3>
@@ -156,7 +150,6 @@
                 <div class="card"><h3>Pending Approval</h3><table id="pending-table"></table></div>
                 <div class="card"><h3>Approved Team</h3><table id="approved-table"></table></div>
             </div>
-
             <div id="tab-inv" class="tab-content" style="display:none">
                 <div class="card" id="create-card">
                     <h3>Create New Item</h3>
@@ -169,27 +162,20 @@
                 </div>
                 <div class="card"><table id="admin-inv-list"></table></div>
             </div>
-
-            <!-- History Logs (RESTORED AS EARLIER) -->
             <div id="tab-logs" class="tab-content" style="display:none">
                 <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
                 <div class="card"><table id="admin-log-list"></table></div>
             </div>
-
-            <!-- Settings (RESTORED AS EARLIER) -->
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Alert Recipients</h3>
-                    <label>To: Email 1</label><input type="email" id="set-e1">
-                    <label>To: Email 2</label><input type="email" id="set-e2">
+                    <label>To: Email 1</label><input type="email" id="set-e1"><label>To: Email 2</label><input type="email" id="set-e2">
                     <label>Cc: Email</label><input type="email" id="set-ecc">
                     <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <h3>EmailJS Integration</h3>
-                    <label>Public Key</label><input type="text" id="set-key">
-                    <label>Service ID</label><input type="text" id="set-svc">
-                    <label>Template ID</label><input type="text" id="set-tpl">
+                    <label>EmailJS Public Key</label><input type="text" id="set-key">
+                    <label>Service ID</label><input type="text" id="set-svc"><label>Template ID</label><input type="text" id="set-tpl">
                     <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <label>System Admin PIN</label><input type="text" id="set-pin">
+                    <label>Admin Master PIN</label><input type="text" id="set-pin">
                     <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
                 </div>
             </div>
@@ -260,13 +246,13 @@
                     setupEmail = e;
                     document.getElementById('login-main-form').style.display = 'none';
                     document.getElementById('setup-pass-area').style.display = 'block';
-                } else { alert("Check Credentials or PIN."); }
+                } else { alert("Error: Check Credentials or PIN."); }
             });
         };
 
         window.finalizeAccountSetup = async () => {
             const newPass = document.getElementById('new-set-pass').value;
-            if(newPass.length < 6) return alert("Min 6 characters.");
+            if(newPass.length < 6) return alert("Min 6 chars.");
             try {
                 const res = await createUserWithEmailAndPassword(auth, setupEmail, newPass);
                 const q = query(collection(db, "users_metadata"), where("email", "==", setupEmail));
@@ -300,21 +286,14 @@
             onSnapshot(collection(db, "inventory"), s => {
                 inv = s.docs.map(d => ({id: d.id, ...d.data()}));
                 const list = document.getElementById('user-bulk-list');
-                if(list) list.innerHTML = inv.map(item => `
-                    <tr id="row-${item.id}" class="user-table-row">
-                        <td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td>
-                        <td>${item.name}</td>
-                        <td><strong>${item.stock}</strong></td>
-                        <td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0" min="0"></td>
-                    </tr>
-                `).join('');
+                if(list) list.innerHTML = inv.map(item => `<tr id="row-${item.id}" class="user-table-row"><td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td><td>${item.name}</td><td><strong>${item.stock}</strong></td><td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0"></td></tr>`).join('');
                 renderAdminInv();
             });
         }
 
         window.toggleRowHighlight = (id) => document.getElementById(`row-${id}`).classList.toggle('selected');
 
-        // BATCH UPDATE: FIXES MULTIPLE ITEM PUNCHING
+        // BATCH UPDATE: FIXES MULTIPLE ITEMS & FORMATS PURPOSE LOG
         window.submitBulkUpdate = async () => {
             const note = document.getElementById('bulk-note').value, date = document.getElementById('bulk-date').value;
             if(!note || !date) return alert("Purpose & Date required.");
@@ -322,7 +301,7 @@
             if(checks.length === 0) return alert("Select items.");
 
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "Syncing All Items...";
+            btn.disabled = true; btn.innerText = "Syncing...";
 
             const batch = writeBatch(db);
             let itemsToAlert = [];
@@ -332,31 +311,29 @@
                 const item = inv.find(i => i.id === id);
                 if(qty > 0 && qty <= item.stock) {
                     const newStock = item.stock - qty;
-                    // Add update to batch
                     batch.update(doc(db, "inventory", id), { stock: newStock });
-                    // Add log to batch
-                    const newLogRef = doc(collection(db, "logs"));
-                    batch.set(newLogRef, { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` });
                     
-                    const pct = Math.round((newStock / (item.initial || 1)) * 100);
-                    if(pct <= 35) itemsToAlert.push(`${item.name} (${newStock} left)`);
+                    const newLogRef = doc(collection(db, "logs"));
+                    batch.set(newLogRef, { 
+                        time: new Date().toISOString(), 
+                        item: item.name, 
+                        qty, 
+                        user: auth.currentUser.email, 
+                        note: `Event: ${note} | Date: ${date}` // NEW FORMATTED PURPOSE
+                    });
+                    
+                    if(Math.round((newStock / (item.initial || 1)) * 100) <= 35) itemsToAlert.push(`${item.name} (${newStock} left)`);
                 }
             }
 
             try {
-                await batch.commit(); // Sends all data in ONE go
-                
+                await batch.commit();
                 if (itemsToAlert.length > 0 && settings.ejsSvc) {
                     const rec = [settings.e1, settings.e2, settings.ecc].filter(x=>x).join(', ');
                     window.emailjs.send(settings.ejsSvc, settings.ejsTpl, { items_list: itemsToAlert.join(', '), to_email: rec || ADMIN_EMAIL });
                 }
-
-                alert("All items updated successfully!");
-                location.reload();
-            } catch(e) {
-                alert("Error Syncing: " + e.message);
-                btn.disabled = false; btn.innerText = "Submit Batch Requisition";
-            }
+                alert("Success!"); location.reload();
+            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = "Submit Batch Requisition"; }
         };
 
         function renderAdminInv() {
@@ -389,7 +366,6 @@
         window.cancelEdit = () => { document.getElementById('create-card').style.display='block'; document.getElementById('update-card').style.display='none'; };
         window.saveItemUpdate = async () => { await updateDoc(doc(db, "inventory", document.getElementById('edit-id').value), { name: document.getElementById('edit-name').value, stock: parseInt(document.getElementById('edit-stock').value) }); cancelEdit(); };
         window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value); if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q }); };
-        
         window.signOutUser = () => signOut(auth).then(() => location.reload());
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
