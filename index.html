@@ -36,11 +36,10 @@
         .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 12px; font-size: 11px; border-radius: 4px; }
         .btn-edit { background: #edf2ff; color: var(--primary); width: auto; padding: 6px 12px; font-size: 11px; border: 1px solid #d0dfff; margin-right: 5px; border-radius: 4px; }
         
-        /* User Checklist UI (RESTORED) */
+        /* User Checklist UI */
         .user-table-row.selected { background-color: #f0f7ff; }
         .qty-input-small { width: 80px !important; padding: 8px !important; margin: 0 !important; text-align: center; border: 1px solid #cbd5e0 !important; }
 
-        /* Tables & Tabs */
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
         .tab-bar { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border); overflow-x: auto; }
         .tab-btn { padding: 10px 0; background: none; border: none; cursor: pointer; color: var(--text-light); border-bottom: 2px solid transparent; white-space: nowrap; }
@@ -97,12 +96,11 @@
         </div>
     </div>
 
-    <!-- PENDING APPROVAL -->
     <div id="screen-pending" class="screen">
         <div class="auth-card"><h2>Access Restricted</h2><p>Your account is currently pending Admin approval.</p><button class="btn btn-s" onclick="signOutUser()">Logout</button></div>
     </div>
 
-    <!-- USER INTERFACE (CHECKLIST UI RESTORED) -->
+    <!-- USER UI -->
     <div id="screen-user" class="screen">
         <div class="container" style="max-width: 850px;">
             <div class="nav"><h2 id="user-name-tag">Hello</h2><button class="btn btn-s" style="width:auto;" onclick="signOutUser()">Logout</button></div>
@@ -142,9 +140,7 @@
                 <button class="tab-btn" onclick="switchTab('logs')">History</button>
                 <button class="tab-btn" onclick="switchTab('set')">Settings</button>
             </div>
-
             <div id="tab-overview" class="tab-content"><div class="card"><table id="admin-dash-list"></table></div></div>
-            
             <div id="tab-team" class="tab-content" style="display:none">
                 <div class="card">
                     <h3>Register New User</h3>
@@ -157,7 +153,6 @@
                 <div class="card"><h3>Pending Approval</h3><table id="pending-table"></table></div>
                 <div class="card"><h3>Approved Team</h3><table id="approved-table"></table></div>
             </div>
-
             <div id="tab-inv" class="tab-content" style="display:none">
                 <div class="card" id="create-card">
                     <h3>Create New Item</h3>
@@ -170,23 +165,10 @@
                 </div>
                 <div class="card"><table id="admin-inv-list"></table></div>
             </div>
-
-            <div id="tab-logs" class="tab-content" style="display:none">
-                <div style="text-align:right; margin-bottom:10px;"><button class="btn btn-s" style="width:auto" onclick="downloadCSV()">Export CSV</button></div>
-                <div class="card"><table id="admin-log-list"></table></div>
-            </div>
-
+            <div id="tab-logs" class="tab-content" style="display:none"><div class="card"><table id="admin-log-list"></table></div></div>
             <div id="tab-set" class="tab-content" style="display:none">
                 <div class="card">
-                    <h3>Settings</h3>
-                    <label>To: Email 1</label><input type="email" id="set-e1">
-                    <label>To: Email 2</label><input type="email" id="set-e2">
-                    <label>Cc: Email</label><input type="email" id="set-ecc">
-                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                    <label>Public Key</label><input type="text" id="set-key">
-                    <label>Service ID</label><input type="text" id="set-svc">
-                    <label>Template ID</label><input type="text" id="set-tpl">
-                    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+                    <label>To: Email 1</label><input type="email" id="set-e1"><label>To: Email 2</label><input type="email" id="set-e2">
                     <label>Admin PIN</label><input type="text" id="set-pin">
                     <button class="btn btn-p" onclick="saveAdminSet()">Save All Settings</button>
                 </div>
@@ -216,19 +198,13 @@
 
         let inv = [], logs = [], users = [], setupEmail = "", adminPin = 'admin123', settings = {};
 
-        // Settings Sync
         onSnapshot(doc(db, "settings", "config"), d => {
             if(d.exists()) {
                 settings = d.data(); adminPin = settings.pin || 'admin123';
-                if(settings.ejsKey) window.emailjs.init({ publicKey: settings.ejsKey });
                 if(document.getElementById('set-pin')) {
                     document.getElementById('set-pin').value = adminPin;
                     document.getElementById('set-e1').value = settings.e1 || '';
                     document.getElementById('set-e2').value = settings.e2 || '';
-                    document.getElementById('set-ecc').value = settings.ecc || '';
-                    document.getElementById('set-key').value = settings.ejsKey || '';
-                    document.getElementById('set-svc').value = settings.ejsSvc || '';
-                    document.getElementById('set-tpl').value = settings.ejsTpl || '';
                 }
             }
         });
@@ -248,7 +224,6 @@
             document.getElementById('loading-overlay').style.display = 'none';
         });
 
-        // 1. LOGIN & PIN
         window.handleEmail = async () => {
             const e = document.getElementById('auth-email').value.trim();
             const p = document.getElementById('auth-pass').value.trim();
@@ -266,7 +241,7 @@
 
         window.finalizeAccountSetup = async () => {
             const newPass = document.getElementById('new-set-pass').value;
-            if(newPass.length < 6) return alert("Min 6 characters.");
+            if(newPass.length < 6) return alert("Min 6 chars.");
             try {
                 const res = await createUserWithEmailAndPassword(auth, setupEmail, newPass);
                 const q = query(collection(db, "users_metadata"), where("email", "==", setupEmail));
@@ -284,67 +259,59 @@
             alert("Registered! PIN: " + pin);
         };
 
-        // 2. APPROVAL BUTTONS (FIXED - Attached to Window)
         window.toggleApproval = async (id, status) => {
-            try {
-                await updateDoc(doc(db, "users_metadata", id), { approved: status });
-            } catch (e) { alert("Error: " + e.message); }
+            try { await updateDoc(doc(db, "users_metadata", id), { approved: status }); } catch (e) { alert(e.message); }
         };
 
         function renderUserTables() {
-            const pTable = document.getElementById('pending-table');
-            const aTable = document.getElementById('approved-table');
+            const pTable = document.getElementById('pending-table'), aTable = document.getElementById('approved-table');
             if(!pTable || !aTable) return;
-            const p = users.filter(u => !u.approved);
-            const a = users.filter(u => u.approved);
-            pTable.innerHTML = `<thead><tr><th>Email</th><th>Action</th></tr></thead><tbody>` + p.map(u => `<tr><td>${u.email || 'New User'}</td><td>PIN: ${u.tempPin || 'N/A'}<button class="btn-approve" onclick="toggleApproval('${u.id}', true)" style="margin-left:10px">Approve</button></td></tr>`).join('') + `</tbody>`;
+            const p = users.filter(u => !u.approved), a = users.filter(u => u.approved);
+            pTable.innerHTML = `<thead><tr><th>Email</th><th>Action</th></tr></thead><tbody>` + p.map(u => `<tr><td>${u.email || 'User'}</td><td>PIN: ${u.tempPin || 'N/A'}<button class="btn-approve" onclick="toggleApproval('${u.id}', true)" style="margin-left:10px">Approve</button></td></tr>`).join('') + `</tbody>`;
             aTable.innerHTML = `<thead><tr><th>Email</th><th>Action</th></tr></thead><tbody>` + a.map(u => `<tr><td>${u.email || 'User'}</td><td><button class="btn-danger" onclick="toggleApproval('${u.id}', false)">Revoke</button></td></tr>`).join('') + `</tbody>`;
         }
 
-        // 3. USER UI & LOGIC (RESTORED)
         function initSync() {
             onSnapshot(collection(db, "inventory"), s => {
                 inv = s.docs.map(d => ({id: d.id, ...d.data()}));
                 const list = document.getElementById('user-bulk-list');
-                if(list) list.innerHTML = inv.map(item => `
-                    <tr id="row-${item.id}" class="user-table-row">
-                        <td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td>
-                        <td>${item.name}</td>
-                        <td><strong>${item.stock}</strong></td>
-                        <td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0" min="0"></td>
-                    </tr>
-                `).join('');
+                if(list) list.innerHTML = inv.map(item => `<tr id="row-${item.id}" class="user-table-row"><td><input type="checkbox" class="bulk-check" data-id="${item.id}" onchange="toggleRowHighlight('${item.id}')"></td><td>${item.name}</td><td><strong>${item.stock}</strong></td><td><input type="number" id="qty-${item.id}" class="qty-input-small" value="0"></td></tr>`).join('');
                 renderAdminInv();
             });
         }
 
         window.toggleRowHighlight = (id) => document.getElementById(`row-${id}`).classList.toggle('selected');
 
+        // BATCH UPDATE (FIXED FOR MULTIPLE ITEMS)
         window.submitBulkUpdate = async () => {
             const note = document.getElementById('bulk-note').value, date = document.getElementById('bulk-date').value;
             if(!note || !date) return alert("Purpose & Date required.");
             const checks = document.querySelectorAll('.bulk-check:checked');
-            if(checks.length === 0) return alert("Select at least one item.");
+            if(checks.length === 0) return alert("Select items.");
 
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.innerText = "Syncing...";
+
+            let updates = [];
             for(let check of checks) {
                 const id = check.dataset.id, qty = parseInt(document.getElementById(`qty-${id}`).value);
                 const item = inv.find(i => i.id === id);
                 if(qty > 0 && qty <= item.stock) {
-                    const newStock = item.stock - qty;
-                    await updateDoc(doc(db, "inventory", id), { stock: newStock });
-                    await addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` });
-                    
-                    const pct = Math.round((newStock / (item.initial || 1)) * 100);
-                    if(pct <= 35 && settings.ejsSvc) {
-                        const rec = [settings.e1, settings.e2, settings.ecc].filter(x=>x).join(', ');
-                        window.emailjs.send(settings.ejsSvc, settings.ejsTpl, { items_list: `${item.name}: ${newStock} left`, to_email: rec || ADMIN_EMAIL });
-                    }
+                    updates.push(updateDoc(doc(db, "inventory", id), { stock: item.stock - qty }));
+                    updates.push(addDoc(collection(db, "logs"), { time: new Date().toISOString(), item: item.name, qty, user: auth.currentUser.email, note: `${note} (${date})` }));
                 }
             }
-            alert("Inventory Updated!"); location.reload();
+
+            try {
+                await Promise.all(updates);
+                alert("Inventory Updated!");
+                location.reload();
+            } catch(e) {
+                alert("Error: " + e.message);
+                btn.disabled = false; btn.innerText = "Submit Batch Requisition";
+            }
         };
 
-        // 4. ADMIN DASHBOARD & HISTORY (RESTORED)
         function renderAdminInv() {
             if(!document.getElementById('admin-dash-list')) return;
             document.getElementById('admin-dash-list').innerHTML = `<thead><tr><th>Item</th><th>Stock</th><th>Stock %</th><th>Status</th></tr></thead><tbody>` + 
@@ -363,11 +330,8 @@
         }
 
         window.saveAdminSet = async () => {
-            await setDoc(doc(db, "settings", "config"), { 
-                pin: document.getElementById('set-pin').value, e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value, ecc: document.getElementById('set-ecc').value,
-                ejsKey: document.getElementById('set-key').value, ejsSvc: document.getElementById('set-svc').value, ejsTpl: document.getElementById('set-tpl').value
-            });
-            alert("Settings saved!");
+            await setDoc(doc(db, "settings", "config"), { pin: document.getElementById('set-pin').value, e1: document.getElementById('set-e1').value, e2: document.getElementById('set-e2').value }, { merge: true });
+            alert("Saved");
         };
 
         window.deleteItem = async (id) => { if(confirm("Delete item?")) await deleteDoc(doc(db, "inventory", id)); };
@@ -375,7 +339,6 @@
         window.cancelEdit = () => { document.getElementById('create-card').style.display='block'; document.getElementById('update-card').style.display='none'; };
         window.saveItemUpdate = async () => { await updateDoc(doc(db, "inventory", document.getElementById('edit-id').value), { name: document.getElementById('edit-name').value, stock: parseInt(document.getElementById('edit-stock').value) }); cancelEdit(); };
         window.adminAddItem = async () => { const n = document.getElementById('add-name').value, q = parseInt(document.getElementById('add-qty').value); if(n) await addDoc(collection(db, "inventory"), { name: n, stock: q, initial: q }); };
-        
         window.signOutUser = () => signOut(auth).then(() => location.reload());
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(c => c.style.display='none'); document.getElementById('tab-'+t).style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); };
